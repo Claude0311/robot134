@@ -54,7 +54,7 @@ class Trajectory():
         # q    = self.offset + self.amp * np.cos(t)
         # qdot =             - self.amp * np.sin(t)
         if t<3: #0 -> M
-            (q,qdot) = spline(t,  3, self.q0, self.qR)
+            (q,qdot) = spline(t,  3, self.q0, self.qM)
         elif t%12<3: # L -> M
             (q,qdot) = spline(t%3,3, self.qL, self.qM)
         elif t%12<6: # M -> R
