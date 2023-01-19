@@ -53,16 +53,16 @@ class Trajectory():
     def evaluate(self, t, dt):
         # q    = self.offset + self.amp * np.cos(t)
         # qdot =             - self.amp * np.sin(t)
-        if t<3: #0 -> R
+        if t<3: #0 -> M
             (q,qdot) = spline(t,  3, self.q0, self.qR)
-        elif t%12<3: # M -> R
-            (q,qdot) = spline(t%3,3, self.qM, self.qR)
-        elif t%12<6: # R -> M
-            (q,qdot) = spline(t%3,3, self.qR, self.qM)
-        elif t%12<9: # M -> L
-            (q,qdot) = spline(t%3,3, self.qM, self.qL)
-        else: # L -> M
+        elif t%12<3: # L -> M
             (q,qdot) = spline(t%3,3, self.qL, self.qM)
+        elif t%12<6: # M -> R
+            (q,qdot) = spline(t%3,3, self.qM, self.qR)
+        elif t%12<9: # R -> M
+            (q,qdot) = spline(t%3,3, self.qR, self.qM)
+        else: # M -> L
+            (q,qdot) = spline(t%3,3, self.qM, self.qL)
         
         self.q = q
         self.chain.setjoints(self.q)
