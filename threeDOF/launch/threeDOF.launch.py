@@ -53,6 +53,14 @@ def generate_launch_description():
         arguments  = [urdf],
         on_exit    = Shutdown())
 
+    node_robot_state_publisher_COMMAND = Node(
+        name       = 'robot_state_publisher', 
+        package    = 'robot_state_publisher',
+        executable = 'robot_state_publisher',
+        output     = 'screen',
+        parameters = [{'robot_description': robot_description}],
+        remappings = [('/joint_states', '/joint_commands')])
+
     # Configure a node for the joint_publisher.
     node_sim = Node(
         name       = 'threeDOF',
@@ -89,8 +97,9 @@ def generate_launch_description():
 
         # Start the demo and RVIZ
         node_rviz,
-        node_urdf,
+        # node_urdf,
+        node_robot_state_publisher_COMMAND,
         node_sim,
-        node_hebi
+        node_hebi,
         # node_joint_gui
     ])
