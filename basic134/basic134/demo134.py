@@ -85,7 +85,7 @@ class DemoNode(Node):
         # Build up the message and publish.
         self.cmdmsg.header.stamp = self.get_clock().now().to_msg()
         self.cmdmsg.name         = ['base', 'shoulder', 'elbow']
-        self.cmdmsg.position     = [1.0, 2.0, 3.0]
+        self.cmdmsg.position     = [1.0, 2.0, 2.5]
         self.cmdmsg.velocity     = []
         self.cmdmsg.effort       = []
         self.cmdpub.publish(self.cmdmsg)
