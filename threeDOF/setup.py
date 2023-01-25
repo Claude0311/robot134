@@ -13,6 +13,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', glob('launch/*')),
         ('share/' + package_name + '/rviz',   glob('rviz/*')),
+        ('share/' + package_name + '/meshes', glob('meshes/*')),
         ('share/' + package_name + '/urdf',   glob('urdf/*')),
     ],
     install_requires=['setuptools'],
@@ -24,7 +25,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'threeDOF = threeDOF.threeDOF:main'
+            'threeDOF = threeDOF.threeDOF:main',
+            'multisol = threeDOF.multisol:main'
         ],
     },
 )

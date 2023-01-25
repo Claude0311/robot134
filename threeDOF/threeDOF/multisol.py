@@ -34,9 +34,8 @@ class Trajectory():
         self.offset = (self.q0 + self.q1)/2
         self.amp = (self.q0 - self.q1)/2
 
-        self.qR = np.array([ np.pi/4, -np.pi/4, np.pi/2])
-        self.qL = np.array([-np.pi/4, -np.pi/4, np.pi/2])
-        self.qM = np.array([       0, -np.pi/2, np.pi/2])
+        self.sol1 = np.array([0.0, -np.pi/4, np.pi/2])
+        self.sol2 = np.array([np.pi, -3*np.pi/4, -np.pi/2])
 
         self.q = self.q0
         self.chain.setjoints(self.q)
@@ -51,19 +50,12 @@ class Trajectory():
 
     # Evaluate at the given time.  This was last called (dt) ago.
     def evaluate(self, t, dt):
-        # q    = self.offset + self.amp * np.cos(t)
-        # qdot =             - self.amp * np.sin(t)
-        T = 3
-        if t<T: #0 -> M
-            (q,qdot) = spline(t,  T, self.q0, self.qM)
-        elif t%(4*T)<T: # L -> M
-            (q,qdot) = spline(t%T,T, self.qL, self.qM)
-        elif t%(4*T)<2*T: # M -> R
-            (q,qdot) = spline(t%T,T, self.qM, self.qR)
-        elif t%(4*T)<3*T: # R -> M
-            (q,qdot) = spline(t%T,T, self.qR, self.qM)
-        else: # M -> L
-            (q,qdot) = spline(t%T,T, self.qM, self.qL)
+        if t<3: #0 -> 1
+            (q,qdot) = spline(t,  3, self.q0, self.sol1)
+        elif t%6<3: # 2 -> 1
+            (q,qdot) = spline(t%3,3, self.sol2, self.sol1)
+        else: # 1 -> 2
+            (q,qdot) = spline(t%3,3, self.sol1, self.sol2)
         
         self.q = q
         self.chain.setjoints(self.q)

@@ -26,7 +26,7 @@ def generate_launch_description():
     rvizcfg = os.path.join(pkgdir(package), 'rviz/viewcomp.rviz')
 
     # Locate/load the robot's URDF file (XML).
-    urdf = os.path.join(pkgdir(package), 'urdf/threeDOF.urdf')
+    urdf = os.path.join(pkgdir('basic134'), 'urdf/example.urdf')
     with open(urdf, 'r') as file:
         robot_description = file.read()
 
@@ -58,8 +58,8 @@ def generate_launch_description():
         package    = 'robot_state_publisher',
         executable = 'robot_state_publisher',
         output     = 'screen',
-        parameters = [{'robot_description': robot_description}],
-        remappings = [('/joint_states', '/joint_commands')])
+        parameters = [{'robot_description': robot_description}],)
+        # remappings = [('/joint_states', '/joint_commands')])
 
     # Configure a node for the joint_publisher.
     node_sim = Node(
@@ -77,15 +77,16 @@ def generate_launch_description():
         executable = 'hebinode',
         output     = 'screen',
         parameters = [{'family': 'robotlab'},
-                      {'motors': ['3.6', '3.2', '3.5']},
+                      {'motors': ['3.2', '3.6', '3.4']},
                       {'joints': ['theta1', 'theta2', 'theta3']}])
     # Configure a node for Robot Joint GUI
-    # node_joint_gui = Node(
-    #     name       = 'joint_state_publisher_gui', 
-    #     package    = 'joint_state_publisher_gui',
-    #     executable = 'joint_state_publisher_gui',
-    #     output     = 'screen',
-    #     on_exit    = Shutdown())
+    node_joint_gui = Node(
+        name       = 'joint_state_publisher_gui', 
+        package    = 'joint_state_publisher_gui',
+        executable = 'joint_state_publisher_gui',
+        output     = 'screen',
+        on_exit    = Shutdown(),
+        remappings = [('/joint_states', '/joint_commands')])
 
 
 
