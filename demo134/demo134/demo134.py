@@ -29,7 +29,8 @@ class DemoNode(Node):
         # Create a temporary subscriber to grab the initial position.
         self.position0 = self.grabfbk()
         self.starttime = self.get_clock().now()
-        self.position1 = -np.pi/2*np.sign(self.position0)
+        self.position1 = np.array(self.position0)+0.01 #-np.pi/6 * np.sign(self.position0)
+        # self.position1 = -np.pi/2*np.sign(self.position0)
         self.amp = (self.position0-self.position1)/2
         self.offset = (self.position0+self.position1)/2
         self.get_logger().info("Initial positions: %r" % self.position0)

@@ -1,17 +1,8 @@
-"""Launch the example URDF in RVIZ together with the demo code
-
-This launch file is intended show how the pieces come together.
-
-This should start
-  1) RVIZ, ready to view the robot
-  2) The robot_state_publisher to broadcast the robot model
-  3) The HEBI node to communicate with the motors
-  4) The demo node as a placeholder for your code
-
+"""
+launch file to start up threeDOF simulation
 """
 
 import os
-import xacro
 
 from ament_index_python.packages import get_package_share_directory as pkgdir
 
@@ -28,8 +19,11 @@ def generate_launch_description():
     ######################################################################
     # LOCATE FILES
 
+    # Define the package.
+    package = 'threeDOF'
+
     # Locate the RVIZ configuration file.
-    rvizcfg = os.path.join(pkgdir('basic134'), 'rviz/viewurdf.rviz')
+    rvizcfg = os.path.join(pkgdir(package), 'rviz/viewcomp.rviz')
 
     # Locate/load the robot's URDF file (XML).
     urdf = os.path.join(pkgdir('basic134'), 'urdf/example.urdf')
@@ -37,24 +31,9 @@ def generate_launch_description():
         robot_description = file.read()
 
 
+
     ######################################################################
     # PREPARE THE LAUNCH ELEMENTS
-
-    # Configure a node for the robot_state_publisher.
-    node_robot_state_publisher_ACTUAL = Node(
-        name       = 'robot_state_publisher', 
-        package    = 'robot_state_publisher',
-        executable = 'robot_state_publisher',
-        output     = 'screen',
-        parameters = [{'robot_description': robot_description}])
-
-    node_robot_state_publisher_COMMAND = Node(
-        name       = 'robot_state_publisher', 
-        package    = 'robot_state_publisher',
-        executable = 'robot_state_publisher',
-        output     = 'screen',
-        parameters = [{'robot_description': robot_description}],
-        remappings = [('/joint_states', '/joint_commands')])
 
     # Configure a node for RVIZ
     node_rviz = Node(
@@ -65,6 +44,33 @@ def generate_launch_description():
         arguments  = ['-d', rvizcfg],
         on_exit    = Shutdown())
 
+    # Configure a node for Robot URDF
+    node_urdf = Node(
+        name       = 'robot_state_publisher', 
+        package    = 'robot_state_publisher',
+        executable = 'robot_state_publisher',
+        output     = 'screen',
+        arguments  = [urdf],
+        on_exit    = Shutdown())
+
+    node_robot_state_publisher_COMMAND = Node(
+        name       = 'robot_state_publisher', 
+        package    = 'robot_state_publisher',
+        executable = 'robot_state_publisher',
+        output     = 'screen',
+        parameters = [{'robot_description': robot_description}]
+        # , remappings = [('/joint_states', '/joint_commands')]
+        )
+
+    # Configure a node for the joint_publisher.
+    node_sim = Node(
+        name       = 'threeDOF',
+        package    = 'threeDOF',
+        executable = 'linemove',
+        output     = 'screen',
+        arguments  = ['--dnoe','hello'],
+        on_exit    = Shutdown())
+
     # Configure a node for the hebi interface.
     node_hebi = Node(
         name       = 'hebi', 
@@ -73,15 +79,16 @@ def generate_launch_description():
         output     = 'screen',
         parameters = [{'family': 'robotlab'},
                       {'motors': ['3.2', '3.6', '3.4']},
-                      {'joints': ['theta1', 'theta2', 'theta3']}],
-        on_exit    = Shutdown())
+                      {'joints': ['theta1', 'theta2', 'theta3']}])
+    # Configure a node for Robot Joint GUI
+    node_joint_gui = Node(
+        name       = 'joint_state_publisher_gui', 
+        package    = 'joint_state_publisher_gui',
+        executable = 'joint_state_publisher_gui',
+        output     = 'screen',
+        on_exit    = Shutdown(),
+        remappings = [('/joint_states', '/joint_commands')])
 
-    # Configure a node for the simple demo.
-    node_demo = Node(
-        name       = 'demo', 
-        package    = 'basic134',
-        executable = 'demo134',
-        output     = 'screen')
 
 
     ######################################################################
@@ -90,9 +97,11 @@ def generate_launch_description():
     # Return the description, built as a python list.
     return LaunchDescription([
 
-        # Start the nodes.
-        node_robot_state_publisher_COMMAND,
+        # Start the demo and RVIZ
         node_rviz,
+        # node_urdf,
+        node_robot_state_publisher_COMMAND,
+        node_sim,
         node_hebi,
-        node_demo,
+        # node_joint_gui
     ])

@@ -13,7 +13,7 @@ from sensor_msgs.msg    import JointState
 from rclpy.parameter    import Parameter
 from rcl_interfaces.msg import ParameterDescriptor
 from rcl_interfaces.msg import ParameterType
-
+from std_msgs.msg import Empty
 #
 #   Definitions
 #
@@ -33,10 +33,10 @@ class DemoNode(Node):
         self.readparameters()
         simulation = self.simulation
         self.get_logger().info("Using simulation %s" % simulation)
-        if simulation:
-            self.position0 = [0, 0, 0]
-        else:
-            self.position0 = self.grabfbk()
+        # if simulation:
+        #     self.position0 = [0, 0, 0]
+        # else:
+        self.position0 = self.grabfbk()
 
         self.trajectory = Trajectory(self, self.position0)
         self.jointnames = self.trajectory.jointnames() #if simulation else ['one', 'two', 'three']
@@ -61,6 +61,16 @@ class DemoNode(Node):
         self.dt = self.timer.timer_period_ns * 1e-9
         self.get_logger().info("Sending commands with dt of %f seconds (%fHz)" %
                                (self.dt, rate))
+
+        self.flipsub = self.create_subscription(Empty, '/flip', self.cb_flip, 1)
+        self.flipping = False
+        self.fliptime = 0
+
+    def cb_flip(self, msg):
+        self.get_logger().info("Flipping...")
+        self.fliptime = 0
+        self.flipping = True
+        self.trajectory.setFlip()
 
 
     def readparameters(self):
@@ -102,11 +112,18 @@ class DemoNode(Node):
     # Send a command - called repeatedly by the timer.
     def sendcmd(self):
         # Build up the message and publish.
-        self.t += self.dt
-        t  = self.t
-        dt = self.dt
+        if self.flipping and self.fliptime<10:
+            self.fliptime += self.dt
+            t  = self.fliptime
+            dt = self.dt
+            desired = self.trajectory.flip(t, dt, T=10)
 
-        desired = self.trajectory.evaluate(t, dt)
+        else:
+            self.t += self.dt
+            t  = self.t
+            dt = self.dt
+            desired = self.trajectory.evaluate(t, dt)
+
         if desired is None:
             self.future.set_result("Trajectory has ended")
             return
