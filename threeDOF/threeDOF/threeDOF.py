@@ -51,8 +51,6 @@ class Trajectory():
 
     # Evaluate at the given time.  This was last called (dt) ago.
     def evaluate(self, t, dt):
-        # q    = self.offset + self.amp * np.cos(t)
-        # qdot =             - self.amp * np.sin(t)
         if t<3: #0 -> M
             (q,qdot) = spline(t,  3, self.q0, self.qR)
         elif t%12<3: # L -> M
