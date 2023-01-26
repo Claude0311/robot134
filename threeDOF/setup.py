@@ -26,7 +26,9 @@ setup(
     entry_points={
         'console_scripts': [
             'threeDOF = threeDOF.threeDOF:main',
-            'multisol = threeDOF.multisol:main'
+            'multisol = threeDOF.multisol:main',
+            'linemove = threeDOF.linemove:main',
+            'float = threeDOF.floating:main'
         ],
     },
 )

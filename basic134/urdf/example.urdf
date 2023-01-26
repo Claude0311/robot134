@@ -30,12 +30,12 @@
     <origin xyz="0 0 0.0311" rpy="0 0 1.5708"/>
     <axis   xyz="0 0 1"/>
   </joint>
-
+  
   <!-- Shift across the L bracket -->
   <joint name="lbracket" type="fixed">
     <parent link="lbracket"/>
     <child  link="shouldermotor"/>
-    <origin xyz="0.075 0 0.065625" rpy="1.5708 1.5708 -1.5708"/> 
+    <origin xyz="0.0450 0 0.078" rpy="1.5708 1.5708 -1.5708"/> 
   </joint>
 
   <!-- Shoulder motor.  Thickness: X5 = 31.1mm, X8 = 45.1mm -->
@@ -120,8 +120,10 @@
   <link name="upperarm">
     <visual>
       <geometry>
-        <mesh filename="package://basic134/meshes/basiclink.dae"/>
+	      <mesh filename="package://basic134/meshes/arm.stl"
+		    scale="0.001 0.001 0.001"/>
       </geometry>
+      <material name="plastic"/>
     </visual>
   </link>
 
@@ -138,9 +140,10 @@
   <link name="lowerarm">
     <visual>
       <geometry>
-        <mesh filename="package://basic134/meshes/basiclink.stl"/>
+	      <mesh filename="package://basic134/meshes/arm_tip.stl"
+		    scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="wood"/>
+      <material name="plastic"/>
     </visual>
   </link>
 

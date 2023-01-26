@@ -6,10 +6,11 @@
 #
 import numpy as np
 import rclpy
+import math
 
 from rclpy.node         import Node
 from sensor_msgs.msg    import JointState
-
+# from std_msgs.msg import Float
 
 #
 #   Definitions
@@ -29,11 +30,13 @@ class DemoNode(Node):
         # Create a temporary subscriber to grab the initial position.
         self.position0 = self.grabfbk()
         self.starttime = self.get_clock().now()
-        self.position1 = np.array(self.position0)+0.01 #-np.pi/6 * np.sign(self.position0)
+        self.position1 = -np.pi/6 * np.sign(self.position0)
         # self.position1 = -np.pi/2*np.sign(self.position0)
         self.amp = (self.position0-self.position1)/2
         self.offset = (self.position0+self.position1)/2
         self.get_logger().info("Initial positions: %r" % self.position0)
+
+        self.gravity_scale = 1.0
 
         # Create a message and publisher to send the joint commands.
         self.cmdmsg = JointState()
@@ -48,12 +51,29 @@ class DemoNode(Node):
         self.timer = self.create_timer(1/rate, self.sendcmd)
         self.get_logger().info("Sending commands with dt of %f seconds (%fHz)" %
                                (self.timer.timer_period_ns * 1e-9, rate))
+        
+        self.actpos = None
+        self.statessub = self.create_subscription(
+                JointState, '/joint_states', self.cb_states, 1)
+        while self.actpos is None:
+            rclpy.spin_once(self)
+        self.get_logger().info("Initial positions: %r" % self.actpos)
+
+        # self.numbersub = self.create_subscription(Float, '/number', self.cb_number, 1)
+        
+
 
     # Shutdown
     def shutdown(self):
         # No particular cleanup, just shut down the node.
         self.destroy_node()
 
+    def cb_states(self, msg):
+        # Save the actual position.
+        self.actpos = msg.position
+    def cb_number(self, msg):
+        self.gravity_scale = msg.data
+        self.get_logger().info("Received: %r" % msg.data)
 
     # Grab a single feedback - do not call this repeatedly.
     def grabfbk(self):
@@ -72,6 +92,15 @@ class DemoNode(Node):
         # Return the values.
         return self.grabpos
 
+    def gravity(self, pos):
+        if pos is None: return (0.0,0.0,0.0)
+        scale = self.gravity_scale
+        (A, B, C, D) = (0.01*scale, 0.1*scale, 0.01*scale, 1.0*scale)
+        (_, t1, t2) = list(pos)
+        tau1 = A*math.sin(t1+t2) + B*math.cos(t1+t2) + C*math.sin(t1) + D*math.cos(t1)
+        tau2 = A*math.sin(t1+t2) + B*math.cos(t1+t2)
+        return (0.0, tau1, tau2)
+
 
     # Receive feedback - called repeatedly by incoming messages.
     def recvfbk(self, fbkmsg):
@@ -84,10 +113,11 @@ class DemoNode(Node):
         # Build up the message and publish.
         self.cmdmsg.header.stamp = self.get_clock().now().to_msg()
         t = (self.get_clock().now()-self.starttime).nanoseconds * 1e-9
-        self.cmdmsg.name         = ['one', 'two', 'three']
-        self.cmdmsg.position     = list(self.offset + self.amp*np.cos(t))
-        self.cmdmsg.velocity     = list(-self.amp*np.sin(t))
-        self.cmdmsg.effort       = [0.0, 0.0, 0.0]
+        nan = float('nan')
+        self.cmdmsg.name         = ['theta1', 'theta2', 'theta3']
+        self.cmdmsg.position     = (nan, nan, nan)
+        self.cmdmsg.velocity     = (nan, nan, nan)
+        self.cmdmsg.effort       = self.gravity(self.actpos)
         self.cmdpub.publish(self.cmdmsg)
 
 
