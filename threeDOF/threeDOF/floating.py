@@ -10,7 +10,7 @@ import math
 
 from rclpy.node         import Node
 from sensor_msgs.msg    import JointState
-# from std_msgs.msg import Float
+from std_msgs.msg import Float32 as Float
 
 #
 #   Definitions
@@ -59,7 +59,7 @@ class DemoNode(Node):
             rclpy.spin_once(self)
         self.get_logger().info("Initial positions: %r" % self.actpos)
 
-        # self.numbersub = self.create_subscription(Float, '/number', self.cb_number, 1)
+        self.numbersub = self.create_subscription(Float, '/number', self.cb_number, 1)
         
 
 
@@ -71,6 +71,7 @@ class DemoNode(Node):
     def cb_states(self, msg):
         # Save the actual position.
         self.actpos = msg.position
+    
     def cb_number(self, msg):
         self.gravity_scale = msg.data
         self.get_logger().info("Received: %r" % msg.data)
@@ -95,8 +96,10 @@ class DemoNode(Node):
     def gravity(self, pos):
         if pos is None: return (0.0,0.0,0.0)
         scale = self.gravity_scale
-        (A, B, C, D) = (0.01*scale, 0.1*scale, 0.01*scale, 1.0*scale)
-        (_, t1, t2) = list(pos)
+        (A, B, C, D) = (0.0*scale, -0.0*scale, -0.5*scale, -2.75*scale)#(0.01*scale, 0.1*scale, -0.01*scale, -1.0*scale)
+        (t0, t1, t2) = list(pos)
+        t1 = -t1
+        t2 = -t2
         tau1 = A*math.sin(t1+t2) + B*math.cos(t1+t2) + C*math.sin(t1) + D*math.cos(t1)
         tau2 = A*math.sin(t1+t2) + B*math.cos(t1+t2)
         return (0.0, tau1, tau2)

@@ -6,6 +6,7 @@
 #
 import numpy as np
 import rclpy
+import math
 
 from rclpy.node         import Node
 from sensor_msgs.msg    import JointState
@@ -33,10 +34,10 @@ class DemoNode(Node):
         self.readparameters()
         simulation = self.simulation
         self.get_logger().info("Using simulation %s" % simulation)
-        # if simulation:
-        #     self.position0 = [0, 0, 0]
-        # else:
-        self.position0 = self.grabfbk()
+        if simulation:
+            self.position0 = [0, 0, 0]
+        else:
+            self.position0 = self.grabfbk()
 
         self.trajectory = Trajectory(self, self.position0)
         self.jointnames = self.trajectory.jointnames() #if simulation else ['one', 'two', 'three']
@@ -66,11 +67,51 @@ class DemoNode(Node):
         self.flipping = False
         self.fliptime = 0
 
+        self.actpos = None
+        self.actvel = None
+        self.acteff = None
+        self.gravity_scale = 1.0
+        self.collidetime = 9999
+        self.skip_colli = 0.0 # when < 1, skip
+        if not simulation:
+            self.statessub = self.create_subscription(
+                    JointState, '/joint_states', self.cb_states, 1)
+            while self.actpos is None:
+                rclpy.spin_once(self)
+            self.get_logger().info("Initial positions: %r" % self.actpos)
+            
+
     def cb_flip(self, msg):
         self.get_logger().info("Flipping...")
         self.fliptime = 0
         self.flipping = True
-        self.trajectory.setFlip()
+        self.trajectory.setFlip(self.actpos)
+
+    def cb_states(self, msg):
+        # Save the actual position.
+        self.actpos = msg.position
+        self.actvel = msg.velocity
+        self.acteff = msg.effort
+
+    def check_colli(self, q, qd, qdd):
+        q_threshold = 0.03
+        qd_threshold = 0.3
+        qdd_threshold = 1
+        for i in range(3):
+            if np.abs(q[i]-self.actpos[i])>q_threshold or np.abs(qd[i]-self.actvel[i])>qd_threshold or np.abs(qdd[i]-self.acteff[i])>qdd_threshold:
+                return True
+        return False
+
+    def gravity(self, pos):
+        if pos is None: return (0.0,0.0,0.0)
+        scale = self.gravity_scale
+        (A, B, C, D) = (0.00, -0.15, -0.5, -2.75)#(0.01*scale, 0.1*scale, -0.01*scale, -1.0*scale)
+        (t0, t1, t2) = list(pos)
+        t1 = -t1
+        t2 = -t2
+        tau1 = A*math.sin(t1+t2) + B*math.cos(t1+t2) + C*math.sin(t1) + D*math.cos(t1)
+        tau2 = A*math.sin(t1+t2) + B*math.cos(t1+t2)
+        return (0.0, tau1, tau2)
 
 
     def readparameters(self):
@@ -112,28 +153,49 @@ class DemoNode(Node):
     # Send a command - called repeatedly by the timer.
     def sendcmd(self):
         # Build up the message and publish.
-        if self.flipping and self.fliptime<10:
-            self.fliptime += self.dt
-            t  = self.fliptime
-            dt = self.dt
-            desired = self.trajectory.flip(t, dt, T=10)
+        if self.skip_colli<1:
+            self.skip_colli += self.dt
+
+        if self.collidetime < 1:
+            self.collidetime += self.dt
+            nan = float('nan')
+            q = (nan, nan, nan)
+            qdot = (nan, nan, nan)
+            qdotdot = self.gravity(self.actpos)
+            self.skip_colli = 0.0
+            self.trajectory.q_before = np.array(self.actpos).reshape((-1, 1))
 
         else:
-            self.t += self.dt
-            t  = self.t
-            dt = self.dt
-            desired = self.trajectory.evaluate(t, dt)
 
-        if desired is None:
-            self.future.set_result("Trajectory has ended")
-            return
-        (q, qdot) = desired
+            if self.flipping and self.fliptime<10:
+                self.fliptime += self.dt
+                t  = self.fliptime
+                dt = self.dt
+                desired = self.trajectory.flip(t, dt, T=10)
+                self.skip_colli = 0.0
+
+            else:
+                self.t += self.dt
+                t  = self.t
+                dt = self.dt
+                desired = self.trajectory.evaluate(t, dt)
+
+            if desired is None:
+                self.future.set_result("Trajectory has ended")
+                return
+            (q, qdot) = desired
+            qdotdot = self.gravity(self.actpos)
+
+            if not self.simulation and self.skip_colli>=1 and self.check_colli(q, qdot, qdotdot):
+                self.get_logger().info('Collide!!!')
+                self.cb_flip('msg')
+                self.collidetime = 0
 
         self.cmdmsg.header.stamp = self.get_clock().now().to_msg()
         self.cmdmsg.name         = self.jointnames
         self.cmdmsg.position     = q
         self.cmdmsg.velocity     = qdot
-        self.cmdmsg.effort       = [0.0, 0.0, 0.0]
+        self.cmdmsg.effort       = qdotdot
         self.cmdpub.publish(self.cmdmsg)
 
 
