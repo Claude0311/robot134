@@ -11,6 +11,7 @@ import math
 from rclpy.node         import Node
 from sensor_msgs.msg    import JointState
 from std_msgs.msg import Float32 as Float
+from math import sin, cos, pi
 
 #
 #   Definitions
@@ -94,15 +95,16 @@ class DemoNode(Node):
         return self.grabpos
 
     def gravity(self, pos):
-        if pos is None: return (0.0,0.0,0.0)
+        if pos is None: return (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         scale = self.gravity_scale
         (A, B, C, D) = (0.0*scale, -0.1*scale, -0.5*scale, -2.75*scale)#(0.01*scale, 0.1*scale, -0.01*scale, -1.0*scale)
-        (t0, t1, t2) = list(pos)
+        (_,  t1, _, t2, t3, _) = list(pos)
         t1 = -t1
         t2 = -t2
-        tau1 = A*math.sin(t1+t2) + B*math.cos(t1+t2) + C*math.sin(t1) + D*math.cos(t1)
-        tau2 = A*math.sin(t1+t2) + B*math.cos(t1+t2)
-        return (0.0, tau1, tau2)
+        tau3 = 0.5 * cos(t1+t2+t3)  + 0.01 * sin(t1+t2+t3)
+        tau2 = -tau3 - 5.0 * cos(t1+t2)
+        tau1 = tau2 - 6.0 * cos(t1) * scale
+        return (0.0, tau1, 0.0, tau2, tau3, 0.0)
 
 
     # Receive feedback - called repeatedly by incoming messages.
@@ -116,10 +118,19 @@ class DemoNode(Node):
         # Build up the message and publish.
         self.cmdmsg.header.stamp = self.get_clock().now().to_msg()
         t = (self.get_clock().now()-self.starttime).nanoseconds * 1e-9
+
+        
+        if t<5:
+            theta = -1 + (-0.4)*t/5
+            self.get_logger().info(str(t))
+            self.get_logger().info(str(theta))
+        else: theta = -1-0.4
+
+
         nan = float('nan')
-        self.cmdmsg.name         = ['theta1', 'theta2', 'theta3']
-        self.cmdmsg.position     = (nan, nan, nan)
-        self.cmdmsg.velocity     = (nan, nan, nan)
+        self.cmdmsg.name         = ['theta1', 'theta2', 'grip', 'theta3', 'theta4', 'theta5']
+        self.cmdmsg.position     = (0.0, 0.0, theta, 0.0, 0.0, 0.0)
+        self.cmdmsg.velocity     = (nan, nan, nan, nan, nan, nan)
         self.cmdmsg.effort       = self.gravity(self.actpos)
         self.cmdpub.publish(self.cmdmsg)
 
