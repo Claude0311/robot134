@@ -3,6 +3,8 @@
 This launch file is intended show how the pieces come together.
 Please copy the relevant pieces.
 
+ros2 launch detectors realsense_perstrans.launch.py
+
 """
 
 import os

@@ -51,7 +51,7 @@ class Trajectory():
         ptr = np.array([0,1,3,4,5])
         self.q0 = np.array(q0)[ptr].reshape((-1,1))
         self.node.get_logger().info(str(q0))
-        self.qsafe = np.array([0.0, -np.pi/4, np.pi/4, -np.pi/2, 0.0]).reshape((-1,1))
+        self.qsafe = np.array([0.0, -np.pi/2, np.pi/8*5, -np.pi/8*3, 0.0]).reshape((-1,1))
         safepos = self.chain.fkin(self.qsafe)
         self.xsafe = safepos[0]
         self.Rsafe = safepos[1]
@@ -81,7 +81,7 @@ class Trajectory():
         # 2 -> grap
         # 3 -> move back to normal
         # 4 -> release
-        self.settarget(None)
+        # self.settarget(None)
 
         self.sub = self.node.create_subscription(
             Float32MultiArray, '/target', self.settarget, 10)
@@ -99,7 +99,7 @@ class Trajectory():
                 self.Rtarget = Rotx(np.pi) @ Rotz(0)
             else:
                 data = msg.data
-                self.xtarget = np.array([data[0],data[1], 0.1]).reshape((-1,1))
+                self.xtarget = np.array([data[0],data[1], 0.05]).reshape((-1,1))
                 theta = atan2(data[3]-data[1], data[2]-data[0])
                 self.Rtarget = Rotz(theta) @ Rotx(np.pi) #@ Rotz(-np.pi/4)
 
@@ -163,8 +163,14 @@ class Trajectory():
 
     def toLines(self, t, dt, T):
         if self.phase == 1:
-            (x_desire, xddot) = spline(t-self.t0, T, self.xsafe, self.xtarget)
-            (theta_desire, wd) = spline(t-self.t0, T, 0, self.alpha)
+            xtarget_higher = self.xtarget*1
+            xtarget_higher[2] = 0.13
+            if t-self.t0<2/3*T:
+                (x_desire, xddot) = spline(t-self.t0, 2/3*T, self.xsafe, xtarget_higher)
+                (theta_desire, wd) = spline(t-self.t0, 2/3*T, 0, self.alpha)
+            else:
+                (x_desire, xddot) = spline(t-self.t0-2/3*T, 1/3*T, xtarget_higher, self.xtarget)
+                (theta_desire, wd) = spline(t-self.t0-2/3*T, 1/3*T, self.alpha, self.alpha)
         
             Jv = self.chain.Jv()
             Jw = self.chain.Jw()
@@ -202,7 +208,9 @@ class Trajectory():
     def evaluate(self, t, dt):
         T = 5
         nan = float('nan')
-        gripper_theta = -1.0
+        loose = -0.8
+        tight = -1.2
+        gripper_theta = loose
         gripper_v = nan
 
         if t<T:
@@ -211,7 +219,9 @@ class Trajectory():
 
         elif self.phase==0:
             self.t0 = t
-            return None
+            # return None
+            q = self.q
+            qdot = self.q_dot
 
         elif self.phase==1:
             (q,qdot) = self.toLines(t, dt,  T)
@@ -219,13 +229,13 @@ class Trajectory():
             if t>self.t0+T:
                 self.phase = 2
                 self.t0 = t
-                # self.xtarget = None
+                self.xtarget = None
                 self.q_target = self.q
                 self.Rd = None
                 self.x_desire = None
 
         elif self.phase==2:
-            gripper_theta = - 0.9 - (t-self.t0)/5*0.5
+            gripper_theta = loose + (t-self.t0)/5 * (tight-loose)
             # q = np.array([nan, nan, nan, nan, nan]).reshape((-1,1))
             # qdot = np.array([nan, nan, nan, nan, nan]).reshape((-1,1))
             q = self.q
@@ -242,14 +252,14 @@ class Trajectory():
 
         elif self.phase==3:
             (q,qdot) = self.toLines(t, dt,  T)
-            gripper_theta = -1.4
+            gripper_theta = tight
 
             if t>self.t0+T:
                 self.phase = 4 
                 self.t0 = t
 
         elif self.phase==4:
-            gripper_theta = - 1.4 + (t-self.t0)/5*0.5
+            gripper_theta = tight + (t-self.t0)/5* (loose-tight)
             # q = np.array([nan, nan, nan, nan, nan]).reshape((-1,1))
             # qdot = np.array([nan, nan, nan, nan, nan]).reshape((-1,1))
             q = self.q

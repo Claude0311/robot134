@@ -81,6 +81,13 @@ class TransNode(Node):
             self.M = cv2.getPerspectiveTransform(pt_from,pt_to)
             dst = self.warp_point(pt_target[0], pt_target[1])
             ori = self.warp_point(pt_ori[0], pt_ori[1])
+            
+            pt_ori1 = np.float32(self.tags[target][0]['corners'][:2])
+            ori1 = self.warp_point(pt_ori1[0], pt_ori1[1])
+            pt_ori2 = np.float32(self.tags[target][0]['corners'][2:4])
+            ori2 = self.warp_point(pt_ori2[0], pt_ori2[1])
+            ori = ((ori1[0]+ori2[0])/2, (ori1[1]+ori2[1])/2 )
+
             self.get_logger().info(str(dst))
 
             my_msg = Float32MultiArray()
