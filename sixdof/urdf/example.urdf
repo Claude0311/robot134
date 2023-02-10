@@ -96,7 +96,7 @@
   <joint name="finger" type="fixed">
     <parent link="finger"/>
     <child  link="tip"/>
-    <origin xyz="0 0 0.09" rpy="0 0 0"/>
+    <origin xyz="0 0 0.09" rpy="0 0 0.7854"/>
     <axis   xyz="0 0 1"/>
   </joint>
 
@@ -217,6 +217,18 @@
     </visual>
   </link>
   <link name="finger"/>
-  <link name="tip"/>
+  <link name="tip">
+    <visual>
+      <origin
+          xyz="0 0 0"
+          rpy="-1.5707 0 0"
+      />
+      <geometry>
+        <mesh filename="package://basic134/meshes/gripper.stl"
+	      scale="0.005 0.005 0.005"/>
+      </geometry>
+      <material name="plastic"/>
+    </visual>
+  </link>
 
 </robot>

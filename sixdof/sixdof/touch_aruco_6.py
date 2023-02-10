@@ -51,7 +51,7 @@ class Trajectory():
         ptr = np.array([0,1,3,4,5])
         self.q0 = np.array(q0)[ptr].reshape((-1,1))
         self.node.get_logger().info(str(q0))
-        self.qsafe = np.array([0.0, -np.pi/4, np.pi/4, 0.0, np.pi/4]).reshape((-1,1))
+        self.qsafe = np.array([0.0, -np.pi/4, np.pi/4, 0.0, -np.pi/4]).reshape((-1,1))
         # self.qsafe = np.array([0.0, -np.pi/4, np.pi/4, 0.0, 0.0]).reshape((-1,1))
         safepos = self.chain.fkin(self.qsafe)
         self.xsafe = safepos[0]
@@ -102,7 +102,7 @@ class Trajectory():
                 data = msg.data
                 self.xtarget = np.array([data[0],data[1], 0.1]).reshape((-1,1))
                 theta = atan2(data[3]-data[1], data[2]-data[0])
-                self.Rtarget = Rotz(theta) @ Rotx(np.pi) @ Rotz(-np.pi/4)
+                self.Rtarget = Rotz(theta) @ Rotx(np.pi) #@ Rotz(-np.pi/4)
 
 
             # self.node.get_logger().info(str(self.Rtarget ))
