@@ -129,9 +129,9 @@ class DemoNode(Node):
 
         nan = float('nan')
         self.cmdmsg.name         = ['theta1', 'theta2', 'grip', 'theta3', 'theta4', 'theta5']
-        self.cmdmsg.position     = [0.0, -np.pi/4, 0.9, 0.0, -np.pi/2, 0.0]
+        self.cmdmsg.position     = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.cmdmsg.velocity     = (nan, nan, nan, nan, nan, nan)
-        self.cmdmsg.effort       = self.gravity(self.actpos)
+        self.cmdmsg.effort       =(nan, nan, nan, nan, nan, nan) # self.gravity(self.actpos)
         self.cmdpub.publish(self.cmdmsg)
 
 

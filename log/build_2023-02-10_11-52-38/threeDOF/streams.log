@@ -1,0 +1,54 @@
+[0.916s] Invoking command in '/home/robot134/robotws/src/build/threeDOF': PYTHONPATH=/home/robot134/robotws/src/build/threeDOF/prefix_override:/home/robot134/robotws/src/install/threeDOF/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/robot134/robotws/src/build/threeDOF/build --no-deps install_data
+[1.312s] running develop
+[1.313s] /usr/lib/python3/dist-packages/setuptools/command/easy_install.py:158: EasyInstallDeprecationWarning: easy_install command is deprecated. Use build and pip and other standards-based tools.
+[1.313s]   warnings.warn(
+[1.314s] /usr/lib/python3/dist-packages/setuptools/command/install.py:34: SetuptoolsDeprecationWarning: setup.py install is deprecated. Use build and pip and other standards-based tools.
+[1.314s]   warnings.warn(
+[1.383s] /usr/lib/python3/dist-packages/pkg_resources/__init__.py:116: PkgResourcesDeprecationWarning: 1.16.0-unknown is an invalid version and will not be supported in a future release
+[1.383s]   warnings.warn(
+[1.384s] /usr/lib/python3/dist-packages/pkg_resources/__init__.py:116: PkgResourcesDeprecationWarning: 0.1.43ubuntu1 is an invalid version and will not be supported in a future release
+[1.384s]   warnings.warn(
+[1.384s] /usr/lib/python3/dist-packages/pkg_resources/__init__.py:116: PkgResourcesDeprecationWarning: 1.1build1 is an invalid version and will not be supported in a future release
+[1.384s]   warnings.warn(
+[1.506s] running egg_info
+[1.506s] creating threeDOF.egg-info
+[1.507s] writing threeDOF.egg-info/PKG-INFO
+[1.508s] writing dependency_links to threeDOF.egg-info/dependency_links.txt
+[1.508s] writing entry points to threeDOF.egg-info/entry_points.txt
+[1.508s] writing requirements to threeDOF.egg-info/requires.txt
+[1.508s] writing top-level names to threeDOF.egg-info/top_level.txt
+[1.508s] writing manifest file 'threeDOF.egg-info/SOURCES.txt'
+[1.510s] reading manifest file 'threeDOF.egg-info/SOURCES.txt'
+[1.511s] writing manifest file 'threeDOF.egg-info/SOURCES.txt'
+[1.512s] running build_ext
+[1.512s] Creating /home/robot134/robotws/src/install/threeDOF/lib/python3.10/site-packages/threeDOF.egg-link (link to .)
+[1.513s] Installing float script to /home/robot134/robotws/src/install/threeDOF/lib/threeDOF
+[1.513s] Installing linemove script to /home/robot134/robotws/src/install/threeDOF/lib/threeDOF
+[1.514s] Installing multisol script to /home/robot134/robotws/src/install/threeDOF/lib/threeDOF
+[1.514s] Installing threeDOF script to /home/robot134/robotws/src/install/threeDOF/lib/threeDOF
+[1.515s] Installing touchtarget script to /home/robot134/robotws/src/install/threeDOF/lib/threeDOF
+[1.515s] 
+[1.515s] Installed /home/robot134/robotws/src/build/threeDOF
+[1.515s] running install_data
+[1.515s] creating /home/robot134/robotws/src/install/threeDOF/share/ament_index
+[1.515s] creating /home/robot134/robotws/src/install/threeDOF/share/ament_index/resource_index
+[1.515s] creating /home/robot134/robotws/src/install/threeDOF/share/ament_index/resource_index/packages
+[1.515s] copying resource/threeDOF -> /home/robot134/robotws/src/install/threeDOF/share/ament_index/resource_index/packages
+[1.515s] copying package.xml -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF
+[1.516s] creating /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+[1.516s] copying launch/runexample.linemove.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+[1.516s] copying launch/runexample.multisol.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+[1.516s] copying launch/runexample.float.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+[1.516s] copying launch/viewexample.multisol.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+[1.516s] copying launch/runexample.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+[1.516s] copying launch/runexample.toucharuco.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+[1.517s] copying launch/viewexample.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+[1.517s] copying launch/viewexample.linemove.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+[1.518s] copying launch/viewexample.gui.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+[1.518s] copying launch/viewexample.toucharuco.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+[1.518s] creating /home/robot134/robotws/src/install/threeDOF/share/threeDOF/rviz
+[1.518s] copying rviz/viewcomp.rviz -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/rviz
+[1.519s] creating /home/robot134/robotws/src/install/threeDOF/share/threeDOF/meshes
+[1.519s] creating /home/robot134/robotws/src/install/threeDOF/share/threeDOF/urdf
+[1.519s] copying urdf/threeDOF.urdf -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/urdf
+[1.560s] Invoked command in '/home/robot134/robotws/src/build/threeDOF' returned '0': PYTHONPATH=/home/robot134/robotws/src/build/threeDOF/prefix_override:/home/robot134/robotws/src/install/threeDOF/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/robot134/robotws/src/build/threeDOF/build --no-deps install_data

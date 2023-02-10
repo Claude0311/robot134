@@ -1,0 +1,42 @@
+running develop
+running egg_info
+creating threeDOF.egg-info
+writing threeDOF.egg-info/PKG-INFO
+writing dependency_links to threeDOF.egg-info/dependency_links.txt
+writing entry points to threeDOF.egg-info/entry_points.txt
+writing requirements to threeDOF.egg-info/requires.txt
+writing top-level names to threeDOF.egg-info/top_level.txt
+writing manifest file 'threeDOF.egg-info/SOURCES.txt'
+reading manifest file 'threeDOF.egg-info/SOURCES.txt'
+writing manifest file 'threeDOF.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/robot134/robotws/src/install/threeDOF/lib/python3.10/site-packages/threeDOF.egg-link (link to .)
+Installing float script to /home/robot134/robotws/src/install/threeDOF/lib/threeDOF
+Installing linemove script to /home/robot134/robotws/src/install/threeDOF/lib/threeDOF
+Installing multisol script to /home/robot134/robotws/src/install/threeDOF/lib/threeDOF
+Installing threeDOF script to /home/robot134/robotws/src/install/threeDOF/lib/threeDOF
+Installing touchtarget script to /home/robot134/robotws/src/install/threeDOF/lib/threeDOF
+
+Installed /home/robot134/robotws/src/build/threeDOF
+running install_data
+creating /home/robot134/robotws/src/install/threeDOF/share/ament_index
+creating /home/robot134/robotws/src/install/threeDOF/share/ament_index/resource_index
+creating /home/robot134/robotws/src/install/threeDOF/share/ament_index/resource_index/packages
+copying resource/threeDOF -> /home/robot134/robotws/src/install/threeDOF/share/ament_index/resource_index/packages
+copying package.xml -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF
+creating /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+copying launch/runexample.linemove.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+copying launch/runexample.multisol.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+copying launch/runexample.float.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+copying launch/viewexample.multisol.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+copying launch/runexample.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+copying launch/runexample.toucharuco.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+copying launch/viewexample.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+copying launch/viewexample.linemove.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+copying launch/viewexample.gui.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+copying launch/viewexample.toucharuco.launch.py -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/launch
+creating /home/robot134/robotws/src/install/threeDOF/share/threeDOF/rviz
+copying rviz/viewcomp.rviz -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/rviz
+creating /home/robot134/robotws/src/install/threeDOF/share/threeDOF/meshes
+creating /home/robot134/robotws/src/install/threeDOF/share/threeDOF/urdf
+copying urdf/threeDOF.urdf -> /home/robot134/robotws/src/install/threeDOF/share/threeDOF/urdf

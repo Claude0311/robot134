@@ -1,0 +1,42 @@
+[1.175s] Invoking command in '/home/robot134/robotws/src/build/sixdof': PYTHONPATH=/home/robot134/robotws/src/build/sixdof/prefix_override:/home/robot134/robotws/src/install/sixdof/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/robot134/robotws/src/build/sixdof/build --no-deps install_data
+[1.596s] running develop
+[1.598s] /usr/lib/python3/dist-packages/setuptools/command/easy_install.py:158: EasyInstallDeprecationWarning: easy_install command is deprecated. Use build and pip and other standards-based tools.
+[1.598s]   warnings.warn(
+[1.600s] /usr/lib/python3/dist-packages/setuptools/command/install.py:34: SetuptoolsDeprecationWarning: setup.py install is deprecated. Use build and pip and other standards-based tools.
+[1.600s]   warnings.warn(
+[1.692s] /usr/lib/python3/dist-packages/pkg_resources/__init__.py:116: PkgResourcesDeprecationWarning: 1.16.0-unknown is an invalid version and will not be supported in a future release
+[1.692s]   warnings.warn(
+[1.692s] /usr/lib/python3/dist-packages/pkg_resources/__init__.py:116: PkgResourcesDeprecationWarning: 0.1.43ubuntu1 is an invalid version and will not be supported in a future release
+[1.692s]   warnings.warn(
+[1.692s] /usr/lib/python3/dist-packages/pkg_resources/__init__.py:116: PkgResourcesDeprecationWarning: 1.1build1 is an invalid version and will not be supported in a future release
+[1.692s]   warnings.warn(
+[1.869s] running egg_info
+[1.869s] creating sixdof.egg-info
+[1.870s] writing sixdof.egg-info/PKG-INFO
+[1.870s] writing dependency_links to sixdof.egg-info/dependency_links.txt
+[1.870s] writing entry points to sixdof.egg-info/entry_points.txt
+[1.870s] writing requirements to sixdof.egg-info/requires.txt
+[1.870s] writing top-level names to sixdof.egg-info/top_level.txt
+[1.870s] writing manifest file 'sixdof.egg-info/SOURCES.txt'
+[1.871s] reading manifest file 'sixdof.egg-info/SOURCES.txt'
+[1.872s] writing manifest file 'sixdof.egg-info/SOURCES.txt'
+[1.875s] running build_ext
+[1.875s] Creating /home/robot134/robotws/src/install/sixdof/lib/python3.10/site-packages/sixdof.egg-link (link to .)
+[1.877s] Installing float script to /home/robot134/robotws/src/install/sixdof/lib/sixdof
+[1.877s] Installing touch script to /home/robot134/robotws/src/install/sixdof/lib/sixdof
+[1.878s] 
+[1.878s] Installed /home/robot134/robotws/src/build/sixdof
+[1.878s] running install_data
+[1.879s] creating /home/robot134/robotws/src/install/sixdof/share/ament_index
+[1.879s] creating /home/robot134/robotws/src/install/sixdof/share/ament_index/resource_index
+[1.879s] creating /home/robot134/robotws/src/install/sixdof/share/ament_index/resource_index/packages
+[1.880s] copying resource/sixdof -> /home/robot134/robotws/src/install/sixdof/share/ament_index/resource_index/packages
+[1.880s] copying package.xml -> /home/robot134/robotws/src/install/sixdof/share/sixdof
+[1.881s] creating /home/robot134/robotws/src/install/sixdof/share/sixdof/launch
+[1.881s] copying launch/viewexample.urdf.launch.py -> /home/robot134/robotws/src/install/sixdof/share/sixdof/launch
+[1.882s] copying launch/runexample.float.launch.py -> /home/robot134/robotws/src/install/sixdof/share/sixdof/launch
+[1.883s] copying launch/runexample.launch.py -> /home/robot134/robotws/src/install/sixdof/share/sixdof/launch
+[1.884s] copying launch/viewexample.launch.py -> /home/robot134/robotws/src/install/sixdof/share/sixdof/launch
+[1.885s] creating /home/robot134/robotws/src/install/sixdof/share/sixdof/urdf
+[1.885s] copying urdf/example.urdf -> /home/robot134/robotws/src/install/sixdof/share/sixdof/urdf
+[1.924s] Invoked command in '/home/robot134/robotws/src/build/sixdof' returned '0': PYTHONPATH=/home/robot134/robotws/src/build/sixdof/prefix_override:/home/robot134/robotws/src/install/sixdof/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 setup.py develop --editable --build-directory /home/robot134/robotws/src/build/sixdof/build --no-deps install_data
