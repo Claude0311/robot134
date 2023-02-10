@@ -1,1 +1,0 @@
-/home/robot134/robotws/src/detectors/launch/realsense_perstrans.launch.py

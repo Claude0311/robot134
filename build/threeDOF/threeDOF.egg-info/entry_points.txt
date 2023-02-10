@@ -1,7 +1,0 @@
-[console_scripts]
-float = threeDOF.floating:main
-linemove = threeDOF.linemove:main
-multisol = threeDOF.multisol:main
-threeDOF = threeDOF.threeDOF:main
-touchtarget = threeDOF.touch_aruco:main
-

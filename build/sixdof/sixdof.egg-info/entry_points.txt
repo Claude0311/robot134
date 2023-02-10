@@ -1,4 +1,0 @@
-[console_scripts]
-float = sixdof.floating_six:main
-touch = sixdof.touch_aruco_6:main
-
