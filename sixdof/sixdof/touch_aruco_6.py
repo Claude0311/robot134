@@ -5,9 +5,11 @@
 import rclpy
 import numpy as np
 
-from threeDOF.demo134     import DemoNode
+from sixdof.demo134     import DemoNode
 from threeDOF.KinematicChain    import KinematicChain
 from threeDOF.TransformHelpers  import *
+
+from std_msgs.msg import Float32MultiArray
 
 #
 #   Spline Helper
@@ -44,17 +46,14 @@ class Trajectory():
 
         self.print(q0)
 
-        self.q0 = np.array(q0).reshape((-1,1))
-        self.qsafe = np.array([0, -np.pi/2, np.pi/2]).reshape((-1,1))
+        # ignore the gripper controller
+        ptr = np.array([0,1,3,4,5])
+        self.q0 = np.array(q0)[ptr].reshape((-1,1))
+        self.node.get_logger().info(str(q0))
+        self.qsafe = np.array([0.0, -np.pi/4, np.pi/3, 0.0, 0.0]).reshape((-1,1))
         self.xsafe = self.chain.fkin(self.qsafe)[0]
         
-        self.qR = np.array([ np.pi/4, -np.pi/4, np.pi/2]).reshape((-1,1))
-        self.x1 = self.chain.fkin(self.qR)[0]
-
-        self.qL = np.array([0.01, -1.21, 2.41]).reshape((-1,1))
-        self.x2 = self.chain.fkin(self.qL)[0]
-
-        self.print(self.x1, self.x2)
+        self.xtarget = None
 
         self.q = self.q0
         self.chain.setjoints(self.q)
@@ -65,10 +64,25 @@ class Trajectory():
         self.q_dot_after = np.array([0.0, 0.0, 0.0]).reshape((-1, 1))
         self.x_desire = None
         self.lam = 10
+        self.t0 = 0
+
+        self.phase = 0 
+        # 0 -> wait for cmd
+        # 1 -> move to target
+        # 2 -> move back to normal
+
+        self.sub = self.node.create_subscription(
+            Float32MultiArray, '/target', self.settarget, 10)
     
     def print(self, *argv):
         for arg in argv:
             self.node.get_logger().info(str(arg))
+
+    def settarget(self, msg):
+        if self.phase != 1:
+            data = msg.data
+            self.xtarget = np.array([data[0],data[1],0.1]).reshape((-1,1))
+            if self.phase==0: self.phase = 1
 
     def setFlip(self, pos, v0 = None):
         if pos is None: self.q_before = self.q
@@ -100,42 +114,64 @@ class Trajectory():
     # Declare the joint names.
     def jointnames(self):
         # Return a list of joint names FOR THE EXPECTED URDF!
-        return ['theta1', 'theta2', 'theta3']
+        return ['theta1', 'theta2', 'theta3', 'theta4', 'theta5']
 
     def toSafe(self, t, dt, T):
-        if t<T/2:
-            (q,qdot) = spline(t,  T/2, self.q0, self.qsafe)
-        else:
-            (q,qdot) = spline(t-T/2,  T/2, self.qsafe, self.qR)
+        (q,qdot) = spline(t,  T, self.q0, self.qsafe)
         return (q,qdot)
-    
-    def toLines(self, t, dt):
-        T = 5
-        if t%(2*T)<T:
-            (x_desire, xddot) = spline(t%T, T, self.x1, self.x2)
+
+    def toLines(self, t, dt, T):
+        if self.phase == 1:
+            (x_desire, xddot) = spline(t-self.t0, T, self.xsafe, self.xtarget)
+        
+            J = self.chain.Jv()
+            xq = self.chain.ptip()
+            self.x_desire = x_desire
+            self.xdot = xddot
+            qdot = np.linalg.pinv(J, 0.1) @ (xddot + self.lam * (x_desire - xq))
+            q = self.q + qdot * dt
+            return (q,qdot)
+
         else:
-            (x_desire, xddot) = spline(t%T, T, self.x2, self.x1)
-        J = self.chain.Jv()
-        xq = self.chain.ptip()
-        self.x_desire = x_desire
-        self.xdot = xddot
-        qdot = np.linalg.pinv(J, 0.1) @ (xddot + self.lam * (x_desire - xq))
-        q = self.q + qdot * dt
-        return (q,qdot)
+            (q, qdot) = spline(t-self.t0, T, self.q_target, self.qsafe)
+            return (q,qdot)
 
     # Evaluate at the given time.  This was last called (dt) ago.
     def evaluate(self, t, dt):
         T = 10
         if t<T:
-            (q,qdot) = self.toSafe(t, dt, T)
-        else:
-            (q,qdot) = self.toLines(t-T, dt)
+            (q,qdot) = self.toSafe(t, dt,  T)
+            self.t0 = t
+
+        elif self.phase==0:
+            self.t0 = t
+            return None
+
+        elif self.phase==1:
+            (q,qdot) = self.toLines(t, dt,  T)
+
+            if t>self.t0+T:
+                self.phase = 2
+                self.t0 = t
+                self.xtarget = None
+                self.q_target = self.q
+
+        elif self.phase==2:
+            (q,qdot) = self.toLines(t, dt,  T)
+
+            if t>self.t0+T:
+                self.phase = 0 if self.xtarget is None else 1
+                self.t0 = t
         
         self.q = q
         self.chain.setjoints(self.q)
         self.q_dot = qdot
+        q_return = q.flatten().tolist()
+        q_return.insert(2, 0.0)
+        qdot_return = qdot.flatten().tolist()
+        qdot_return.insert(2, 0.0)
         # Return the position and velocity as python lists.
-        return (q.flatten().tolist(), qdot.flatten().tolist())
+        return (q_return, qdot_return)
 
 
 #

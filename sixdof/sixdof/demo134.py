@@ -35,7 +35,7 @@ class DemoNode(Node):
         simulation = self.simulation
         self.get_logger().info("Using simulation %s" % simulation)
         if simulation:
-            self.position0 = [0, 0, 0]
+            self.position0 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         else:
             self.position0 = self.grabfbk()
 
@@ -104,15 +104,16 @@ class DemoNode(Node):
         return False
 
     def gravity(self, pos):
-        if pos is None: return (0.0,0.0,0.0)
+        if pos is None: return (0.0,0.0,0.0,0.0,0.0,0.0)
         scale = self.gravity_scale
         (A, B, C, D) = (0.00, -0.15, -0.5, -2.75)#(0.01*scale, 0.1*scale, -0.01*scale, -1.0*scale)
-        (t0, t1, t2) = list(pos)
+        (_,  t1, _, t2, t3, _) = list(pos)
         t1 = -t1
         t2 = -t2
-        tau1 = A*math.sin(t1+t2) + B*math.cos(t1+t2) + C*math.sin(t1) + D*math.cos(t1)
-        tau2 = A*math.sin(t1+t2) + B*math.cos(t1+t2)
-        return (0.0, tau1, tau2)
+        tau3 = 0.5 * cos(t1+t2+t3)  + 0.01 * sin(t1+t2+t3)
+        tau2 = -tau3 - 5.0 * cos(t1+t2)
+        tau1 = tau2 - 6.0 * cos(t1) * scale
+        return (0.0, tau1, 0.0, tau2, tau3, 0.0)
 
 
     def readparameters(self):
@@ -192,6 +193,9 @@ class DemoNode(Node):
                 self.cb_flip('msg')
                 self.collidetime = 0
 
+        if self.simulation:
+            q.pop(2)
+            qdot.pop(2)
         self.cmdmsg.header.stamp = self.get_clock().now().to_msg()
         self.cmdmsg.name         = self.jointnames
         self.cmdmsg.position     = q

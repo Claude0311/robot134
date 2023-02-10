@@ -1,7 +1,7 @@
 from setuptools import setup
 from glob import glob
 
-package_name = 'threeDOF'
+package_name = 'sixdof'
 
 setup(
     name=package_name,
@@ -12,24 +12,19 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', glob('launch/*')),
-        ('share/' + package_name + '/rviz',   glob('rviz/*')),
-        ('share/' + package_name + '/meshes', glob('meshes/*')),
         ('share/' + package_name + '/urdf',   glob('urdf/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='jeff',
-    maintainer_email='jeff@todo.todo',
+    maintainer='robot134',
+    maintainer_email='chunfuchen0311@gmail.com',
     description='TODO: Package description',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'threeDOF = threeDOF.threeDOF:main',
-            'multisol = threeDOF.multisol:main',
-            'linemove = threeDOF.linemove:main',
-            'float = threeDOF.floating:main',
-            'touchtarget = threeDOF.touch_aruco:main'
+            'float = sixdof.floating_six:main',
+            'touch = sixdof.touch_aruco_6:main'
         ],
     },
 )
