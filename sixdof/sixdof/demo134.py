@@ -15,6 +15,7 @@ from rclpy.parameter    import Parameter
 from rcl_interfaces.msg import ParameterDescriptor
 from rcl_interfaces.msg import ParameterType
 from std_msgs.msg import Empty
+from math import cos, sin, pi
 #
 #   Definitions
 #
@@ -41,6 +42,8 @@ class DemoNode(Node):
 
         self.trajectory = Trajectory(self, self.position0)
         self.jointnames = self.trajectory.jointnames() #if simulation else ['one', 'two', 'three']
+        if not self.simulation:
+            self.jointnames.insert(2, 'grip')
 
         self.get_logger().info("Initial positions: %r" % self.position0)
 
@@ -196,6 +199,7 @@ class DemoNode(Node):
         if self.simulation:
             q.pop(2)
             qdot.pop(2)
+
         self.cmdmsg.header.stamp = self.get_clock().now().to_msg()
         self.cmdmsg.name         = self.jointnames
         self.cmdmsg.position     = q

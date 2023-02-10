@@ -8,6 +8,7 @@ import numpy as np
 from sixdof.demo134     import DemoNode
 from threeDOF.KinematicChain    import KinematicChain
 from threeDOF.TransformHelpers  import *
+from math import atan2
 
 from std_msgs.msg import Float32MultiArray
 
@@ -50,7 +51,8 @@ class Trajectory():
         ptr = np.array([0,1,3,4,5])
         self.q0 = np.array(q0)[ptr].reshape((-1,1))
         self.node.get_logger().info(str(q0))
-        self.qsafe = np.array([0.0, -np.pi/4, np.pi/4, -np.pi/2, 0.0]).reshape((-1,1))
+        self.qsafe = np.array([0.0, -np.pi/4, np.pi/4, 0.0, np.pi/4]).reshape((-1,1))
+        # self.qsafe = np.array([0.0, -np.pi/4, np.pi/4, 0.0, 0.0]).reshape((-1,1))
         safepos = self.chain.fkin(self.qsafe)
         self.xsafe = safepos[0]
         self.Rsafe = safepos[1]
@@ -89,15 +91,22 @@ class Trajectory():
         for arg in argv:
             self.node.get_logger().info(str(arg))
 
-    def settarget(self, msg):
+    def settarget(self, msg=None):
         if self.phase != 1:
             # data = msg.data
-            self.xtarget = np.array([-0.5, -0.1, 0.1]).reshape((-1,1))
-            # self.xtarget = np.array([data[0],data[1],0.1]).reshape((-1,1))
-            self.Rtarget = Rotx(np.pi) @ Rotz(np.pi/4*3)
+            if msg is None or len(msg.data)!=4:
+                self.xtarget = np.array([-0.5, -0.1, 0.1]).reshape((-1,1))
+                # self.xtarget = np.array([data[0],data[1],0.1]).reshape((-1,1))
+                self.Rtarget = Rotx(np.pi) @ Rotz(0)
+            else:
+                data = msg.data
+                self.xtarget = np.array([data[0],data[1], 0.1]).reshape((-1,1))
+                theta = atan2(data[3]-data[1], data[2]-data[0])
+                self.Rtarget = Rotz(theta) @ Rotx(np.pi) @ Rotz(-np.pi/4)
 
-            self.node.get_logger().info(str(self.Rtarget ))
-            self.node.get_logger().info(str(self.Rsafe ))
+
+            # self.node.get_logger().info(str(self.Rtarget ))
+            # self.node.get_logger().info(str(self.Rsafe ))
             #### calculate the eigenvector ####
             R0f = (self.Rtarget).T @ self.Rsafe
             w,v = np.linalg.eig( R0f )
@@ -105,10 +114,15 @@ class Trajectory():
             u = v[:,index].reshape((3,1))
             u = np.real(u)
             alpha = np.arccos((np.trace(R0f)-1)/2)
+            if not np.allclose(Rote(u,-alpha),R0f):
+                alpha = -alpha
             ###################################
 
             self.eh = u
             self.alpha = alpha
+
+            self.node.get_logger().info(str(u ))
+            self.node.get_logger().info(str(alpha ))
 
             if self.phase==0: self.phase = 1
 
@@ -162,7 +176,7 @@ class Trajectory():
 
             R0 = self.Rsafe
             wd = R0 @ self.eh * wd
-            pd = np.vstack((xddot,wd))
+            
 
             self.Rd = R0 @ Rote(self.eh, theta_desire)
             self.x_desire = x_desire
@@ -172,8 +186,12 @@ class Trajectory():
             if self.Rerr is not None:
                 xddot +=  self.lam * self.Rerr[:3]
                 wd += self.lam * self.Rerr[3:]
+            pd = np.vstack((xddot,wd))
 
             qdot = Jv_inv @ xddot + nullspace(Jv, Jv_inv) @ Jw_inv @ wd 
+            # qdot = Jw_inv @ wd 
+            # J = np.vstack((Jv, Jw))
+            # qdot = np.linalg.pinv(J, 0.1) @ pd
             q = self.q + qdot * dt
             return (q,qdot)
 

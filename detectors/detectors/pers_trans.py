@@ -77,12 +77,14 @@ class TransNode(Node):
             dy = -19.0 * 0.01
             pt_to = np.float32([[x0, y0], [x0+dx, y0], [x0, y0+dy], [x0+dx, y0+dy]])
             pt_target = np.float32(self.tags[target][0]['center'])
+            pt_ori = (np.float32(self.tags[target][0]['corners'][:2])+np.float32(self.tags[target][0]['corners'][2:4]))/2
             self.M = cv2.getPerspectiveTransform(pt_from,pt_to)
             dst = self.warp_point(pt_target[0], pt_target[1])
+            ori = self.warp_point(pt_ori[0], pt_ori[1])
             self.get_logger().info(str(dst))
 
             my_msg = Float32MultiArray()
-            my_msg.data = list(dst)
+            my_msg.data = list(dst+ori)
             self.pub.publish(my_msg)
 
     def warp_point(self, x: int, y: int) -> tuple[int, int]:
