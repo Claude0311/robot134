@@ -50,10 +50,18 @@ class Trajectory():
         ptr = np.array([0,1,3,4,5])
         self.q0 = np.array(q0)[ptr].reshape((-1,1))
         self.node.get_logger().info(str(q0))
-        self.qsafe = np.array([0.0, -np.pi/4, np.pi/3, 0.0, 0.0]).reshape((-1,1))
-        self.xsafe = self.chain.fkin(self.qsafe)[0]
+        self.qsafe = np.array([0.0, -np.pi/4, np.pi/4, -np.pi/2, 0.0]).reshape((-1,1))
+        safepos = self.chain.fkin(self.qsafe)
+        self.xsafe = safepos[0]
+        self.Rsafe = safepos[1]
         
-        self.xtarget = None
+        
+        self.xtarget = None #np.array([-0.5, -0.3, 0.0]).reshape((-1, 1))
+        self.Rtarget = None #
+        self.eh = None      #eigenvector for rotation
+        self.alpha = None   #angle to rotate
+        self.Rerr = None
+        self.Rd = None
 
         self.q = self.q0
         self.chain.setjoints(self.q)
@@ -69,7 +77,10 @@ class Trajectory():
         self.phase = 0 
         # 0 -> wait for cmd
         # 1 -> move to target
-        # 2 -> move back to normal
+        # 2 -> grap
+        # 3 -> move back to normal
+        # 4 -> release
+        self.settarget(None)
 
         self.sub = self.node.create_subscription(
             Float32MultiArray, '/target', self.settarget, 10)
@@ -80,8 +91,25 @@ class Trajectory():
 
     def settarget(self, msg):
         if self.phase != 1:
-            data = msg.data
-            self.xtarget = np.array([data[0],data[1],0.1]).reshape((-1,1))
+            # data = msg.data
+            self.xtarget = np.array([-0.5, -0.1, 0.1]).reshape((-1,1))
+            # self.xtarget = np.array([data[0],data[1],0.1]).reshape((-1,1))
+            self.Rtarget = Rotx(np.pi) @ Rotz(np.pi/4*3)
+
+            self.node.get_logger().info(str(self.Rtarget ))
+            self.node.get_logger().info(str(self.Rsafe ))
+            #### calculate the eigenvector ####
+            R0f = (self.Rtarget).T @ self.Rsafe
+            w,v = np.linalg.eig( R0f )
+            index = np.argmin(np.abs(w-1.))
+            u = v[:,index].reshape((3,1))
+            u = np.real(u)
+            alpha = np.arccos((np.trace(R0f)-1)/2)
+            ###################################
+
+            self.eh = u
+            self.alpha = alpha
+
             if self.phase==0: self.phase = 1
 
     def setFlip(self, pos, v0 = None):
@@ -123,12 +151,29 @@ class Trajectory():
     def toLines(self, t, dt, T):
         if self.phase == 1:
             (x_desire, xddot) = spline(t-self.t0, T, self.xsafe, self.xtarget)
+            (theta_desire, wd) = spline(t-self.t0, T, 0, self.alpha)
         
-            J = self.chain.Jv()
+            Jv = self.chain.Jv()
+            Jw = self.chain.Jw()
+            Jv_inv = np.linalg.pinv(Jv, 0.1)
+            Jw_inv = np.linalg.pinv(Jw, 0.1)
+
             xq = self.chain.ptip()
+
+            R0 = self.Rsafe
+            wd = R0 @ self.eh * wd
+            pd = np.vstack((xddot,wd))
+
+            self.Rd = R0 @ Rote(self.eh, theta_desire)
             self.x_desire = x_desire
+
             self.xdot = xddot
-            qdot = np.linalg.pinv(J, 0.1) @ (xddot + self.lam * (x_desire - xq))
+
+            if self.Rerr is not None:
+                xddot +=  self.lam * self.Rerr[:3]
+                wd += self.lam * self.Rerr[3:]
+
+            qdot = Jv_inv @ xddot + nullspace(Jv, Jv_inv) @ Jw_inv @ wd 
             q = self.q + qdot * dt
             return (q,qdot)
 
@@ -138,7 +183,11 @@ class Trajectory():
 
     # Evaluate at the given time.  This was last called (dt) ago.
     def evaluate(self, t, dt):
-        T = 10
+        T = 5
+        nan = float('nan')
+        gripper_theta = -1.0
+        gripper_v = nan
+
         if t<T:
             (q,qdot) = self.toSafe(t, dt,  T)
             self.t0 = t
@@ -153,23 +202,65 @@ class Trajectory():
             if t>self.t0+T:
                 self.phase = 2
                 self.t0 = t
-                self.xtarget = None
+                # self.xtarget = None
                 self.q_target = self.q
+                self.Rd = None
+                self.x_desire = None
 
         elif self.phase==2:
+            gripper_theta = - 0.9 - (t-self.t0)/5*0.5
+            # q = np.array([nan, nan, nan, nan, nan]).reshape((-1,1))
+            # qdot = np.array([nan, nan, nan, nan, nan]).reshape((-1,1))
+            q = self.q
+            qdot = self.q_dot
+            if t>self.t0+5:
+                self.phase = 3
+                self.t0 = t
+
+            q_return = q.flatten().tolist()
+            q_return.insert(2, gripper_theta)
+            qdot_return = qdot.flatten().tolist()
+            qdot_return.insert(2, gripper_v)
+            return (q_return, qdot_return)
+
+        elif self.phase==3:
             (q,qdot) = self.toLines(t, dt,  T)
+            gripper_theta = -1.4
 
             if t>self.t0+T:
-                self.phase = 0 if self.xtarget is None else 1
+                self.phase = 4 
                 self.t0 = t
+
+        elif self.phase==4:
+            gripper_theta = - 1.4 + (t-self.t0)/5*0.5
+            # q = np.array([nan, nan, nan, nan, nan]).reshape((-1,1))
+            # qdot = np.array([nan, nan, nan, nan, nan]).reshape((-1,1))
+            q = self.q
+            qdot = self.q_dot
+            if t>self.t0+5:
+                self.t0 = t
+                self.phase = 0 if self.xtarget is None else 1
+            
+            q_return = q.flatten().tolist()
+            q_return.insert(2, gripper_theta)
+            qdot_return = qdot.flatten().tolist()
+            qdot_return.insert(2, gripper_v)
+            return (q_return, qdot_return)
         
         self.q = q
         self.chain.setjoints(self.q)
         self.q_dot = qdot
+
+        if self.Rd is not None and self.x_desire is not None:
+            self.Rerr = np.vstack(
+                (ep(self.x_desire,self.chain.ptip()), 
+                eR(self.Rd,self.chain.Rtip()))
+            )
+
         q_return = q.flatten().tolist()
-        q_return.insert(2, 0.0)
+        q_return.insert(2, gripper_theta)
         qdot_return = qdot.flatten().tolist()
-        qdot_return.insert(2, 0.0)
+        qdot_return.insert(2, gripper_v)
         # Return the position and velocity as python lists.
         return (q_return, qdot_return)
 

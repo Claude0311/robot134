@@ -208,7 +208,8 @@ def T_from_URDF_origin(origin):
 def e_from_URDF_axis(axis):
     return np.array(axis).reshape((3,1))
 
-
+def nullspace(J,Jinv):
+    return np.eye(J.shape[1])- Jinv @ J
 
 #
 #   Main Test Code

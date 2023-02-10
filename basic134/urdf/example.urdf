@@ -65,7 +65,7 @@
   <joint name="lowerarm" type="fixed">
     <parent link="lowerarm"/>
     <child  link="tip"/>
-    <origin xyz="0.5 0 0.003175" rpy="0 0 0"/>
+    <origin xyz="0.5 0 0.003175" rpy="0 0 0.7854"/>
   </joint>
 
   
