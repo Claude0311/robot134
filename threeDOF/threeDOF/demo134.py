@@ -192,6 +192,7 @@ class DemoNode(Node):
                 self.cb_flip('msg')
                 self.collidetime = 0
 
+        
         self.cmdmsg.header.stamp = self.get_clock().now().to_msg()
         self.cmdmsg.name         = self.jointnames
         self.cmdmsg.position     = q

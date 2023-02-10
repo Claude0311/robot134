@@ -1,5 +1,5 @@
 """
-launch file to start up threeDOF simulation
+launch file to start up basic movement example
 """
 
 import os
@@ -26,7 +26,7 @@ def generate_launch_description():
     rvizcfg = os.path.join(pkgdir(package), 'rviz/viewcomp.rviz')
 
     # Locate/load the robot's URDF file (XML).
-    urdf = os.path.join(pkgdir('basic134'), 'urdf/example.urdf')
+    urdf = os.path.join(pkgdir('sixdof'), 'urdf/example.urdf')
     with open(urdf, 'r') as file:
         robot_description = file.read()
 
@@ -66,7 +66,7 @@ def generate_launch_description():
     node_sim = Node(
         name       = 'sixdof',
         package    = 'sixdof',
-        executable = 'float',
+        executable = 'touch',
         output     = 'screen',
         arguments  = ['--dnoe','hello'],
         on_exit    = Shutdown())
@@ -95,11 +95,13 @@ def generate_launch_description():
         package = 'rqt_plot',
         executable = 'rqt_plot',
         output     = 'screen',
-        arguments =['/joint_states/effort[1]',
+        arguments =[
+            '/joint_states/effort[1]',
                     # '/joint_states/position[1]',
-                    '/joint_states/effort[3]',
+            '/joint_states/effort[3]'
+        ],
                     # '/joint_states/position[2]',
-                    '/joint_states/effort[4]',],
+                    # '/joint_states/effort[4]',
                     # '/joint_states/position[4]',],
         on_exit    = Shutdown())
 
@@ -111,11 +113,11 @@ def generate_launch_description():
     return LaunchDescription([
 
         # Start the demo and RVIZ
-        # node_rviz,
-        # node_urdf,
-        # node_robot_state_publisher_COMMAND,
+        node_rviz,
+        node_urdf,
+        node_robot_state_publisher_COMMAND,
         node_sim,
         node_hebi,
-        node_rqt
+        node_rqt,
         # node_joint_gui
     ])

@@ -51,8 +51,7 @@ class Trajectory():
         ptr = np.array([0,1,3,4,5])
         self.q0 = np.array(q0)[ptr].reshape((-1,1))
         self.node.get_logger().info(str(q0))
-        self.qsafe = np.array([0.0, -np.pi/4, np.pi/4, 0.0, -np.pi/4]).reshape((-1,1))
-        # self.qsafe = np.array([0.0, -np.pi/4, np.pi/4, 0.0, 0.0]).reshape((-1,1))
+        self.qsafe = np.array([0.0, -np.pi/4, np.pi/4, -np.pi/2, 0.0]).reshape((-1,1))
         safepos = self.chain.fkin(self.qsafe)
         self.xsafe = safepos[0]
         self.Rsafe = safepos[1]
