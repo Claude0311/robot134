@@ -148,7 +148,7 @@ def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None):
                 #     center_grid = center_grid[0,0].astype(int)
                 #     cv2.circle(drawframe, center, radius, color, -1)
 
-                color = int( 255 * logprob[x_grid, y_grid] )
+                color = int( 255 * abs(logprob[x_grid, y_grid]) )
                 if not isPile:
                     cv2.drawContours(drawframe, [approx], -1, (0, 0, color), 2)
                 else:
