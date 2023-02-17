@@ -78,7 +78,7 @@ def generate_launch_description():
         executable = 'hebinode',
         output     = 'screen',
         parameters = [{'family': 'robotlab'},
-                      {'motors': ['3.6', '8.7', '4.1', '3.4', '3.1', '4.3']},
+                      {'motors': ['3.6', '3.7', '4.1', '3.4', '3.1', '4.3']},
                       {'joints': ['theta1', 'theta2', 'grip', 'theta3', 'theta4', 'theta5']}])
 
     # Configure a node for Robot Joint GUI
