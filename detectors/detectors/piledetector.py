@@ -154,7 +154,7 @@ class DetectorNode(Node):
         self.pub.publish(self.bridge.cv2_to_imgmsg(drawframe, "rgb8"))
 
         # send pile position
-        x_grid, y_grid = np.argmin(self.logprob)
+        x_grid, y_grid = np.unravel_index(np.argmin(self.logprob, axis=None), self.logprob.shape)
         my_msg = Float32MultiArray()
         if self.logprob[x_grid, y_grid]<-0.5:
             x, y = util.grid2map(x_grid, y_grid)
