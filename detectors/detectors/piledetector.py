@@ -18,6 +18,7 @@ import cv_bridge
 from rclpy.node         import Node
 from sensor_msgs.msg    import Image
 import detectors.util as util
+from std_msgs.msg import Float32MultiArray
 
 #
 #  Detector Node Class
@@ -38,6 +39,7 @@ class DetectorNode(Node):
         # Create a publisher for the processed (debugging) image.
         # Store up to three images, just in case.
         self.pub = self.create_publisher(Image, name+'/image_raw', 3)
+        self.pub2 = self.create_publisher(Float32MultiArray, name+'/pile', 3)
 
         # Set up the OpenCV bridge.
         self.bridge = cv_bridge.CvBridge()
@@ -150,6 +152,17 @@ class DetectorNode(Node):
 
         # Convert the frame back into a ROS image and republish.
         self.pub.publish(self.bridge.cv2_to_imgmsg(drawframe, "rgb8"))
+
+        # send pile position
+        x_grid, y_grid = np.argmin(self.logprob)
+        my_msg = Float32MultiArray()
+        if self.logprob[x_grid, y_grid]<-0.5:
+            x, y = util.grid2map(x_grid, y_grid)
+            my_msg.data = [x/100, y/100]
+        else:
+            my_msg.data = []
+        self.pub.publish(my_msg)
+
 
         # Alternatively, publish the black/white image.
         # self.pub.publish(self.bridge.cv2_to_imgmsg(binary))

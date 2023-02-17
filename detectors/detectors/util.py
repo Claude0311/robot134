@@ -109,8 +109,8 @@ def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None):
         binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # handle probability
-    SCALE = 50  # larger means grow slower
-    logprob *= (1 - 1/SCALE)
+    SCALE = 0.02  # smaller means grow slower
+    logprob *= (1 - SCALE)
     W, H = logprob.shape
     # Draw all contours on the original image for debugging.
     for cnt in contours:
@@ -132,34 +132,44 @@ def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None):
             x_grid, y_grid = map2grid(center_perp[0,0,0]*100, center_perp[0,0,1]*100)
             if 0<=x_grid<W and 0<=y_grid<H:
                 if isPile:
-                    logprob[x_grid, y_grid] -= 1.0
+                    logprob[x_grid, y_grid] -= SCALE
                 else:
-                    logprob[x_grid, y_grid] += 1.0
+                    logprob[x_grid, y_grid] += SCALE
+                
+                if logprob[x_grid, y_grid]>1: logprob[x_grid, y_grid] = 1.
+                elif logprob[x_grid, y_grid]<-1: logprob[x_grid, y_grid] = -1.
             
-                if logprob[x_grid, y_grid]>SCALE/2 or logprob[x_grid, y_grid]<-SCALE/2:
-                    color = red if logprob[x_grid, y_grid]<0 else blue
-                    radius = int(abs(logprob[x_grid, y_grid])/SCALE*10)
+                # if logprob[x_grid, y_grid] > 0.5 or logprob[x_grid, y_grid] < -0.5:
+                #     color = red if logprob[x_grid, y_grid]<0 else blue
+                #     radius = int(abs(logprob[x_grid, y_grid])*10)
 
-                    xx, yy = grid2map(x_grid, y_grid)
-                    center_grid = cv2.perspectiveTransform(np.array([[[ xx/100, yy/100 ]]], dtype='float32'), np.linalg.inv(M))
-                    center_grid = center_grid[0,0].astype(int)
-                    cv2.circle(drawframe, center, radius, color, -1)
+                #     xx, yy = grid2map(x_grid, y_grid)
+                #     center_grid = cv2.perspectiveTransform(np.array([[[ xx/100, yy/100 ]]], dtype='float32'), np.linalg.inv(M))
+                #     center_grid = center_grid[0,0].astype(int)
+                #     cv2.circle(drawframe, center, radius, color, -1)
 
-        if not isPile:
-            cv2.drawContours(drawframe, [approx], -1, blue, 2)
+                color = int( 255 * logprob[x_grid, y_grid] )
+                if not isPile:
+                    cv2.drawContours(drawframe, [approx], -1, (0, 0, color), 2)
+                else:
+                    cv2.drawContours(drawframe, [approx], -1, (color, 0, 0), 2)
         else:
-            cv2.drawContours(drawframe, [approx], -1, red, 2)
+            if not isPile:
+                cv2.drawContours(drawframe, [approx], -1, blue, 2)
+            else:
+                cv2.drawContours(drawframe, [approx], -1, red, 2)
 
 
+    
     # Only proceed if at least one contour was found.  You may
     # also want to loop over the contours...
-    if len(contours) > 0:
+    # if len(contours) > 0:
         # Pick the largest contour.
-        contour = max(contours, key=cv2.contourArea)
+        # contour = max(contours, key=cv2.contourArea)
 
-        rect = cv2.minAreaRect(contour)
-        box = cv2.boxPoints(rect)
-        box = np.int0(box)
+        # rect = cv2.minAreaRect(contour)
+        # box = cv2.boxPoints(rect)
+        # box = np.int0(box)
         # cv2.drawContours(frame,[box],0,(255,0,0),2)
 
         # Report.
