@@ -14,17 +14,18 @@ rqt
 ros2 launch <package_name> <launch_file>
 
 # Launch files
-# plot torque or set robot position 
+# Plot torque or set robot position 
 ros2 launch sixdof runexample.float.launch.py
 
-# grap tile with aruco
-ros2 launch detectors realsense_perstrans.launch.py # publish aruco #47 position
+# Grap tile with aruco
+ros2 launch detectors realsense_perstrans.launch.py # publish position of aruco #47 
 ros2 launch sixdof runexample.launch.py             # grap tile based on aruco pos
 
-# detect piles
+# Detect piles
 ros2 launch detectors realsense_pile.launch.py
 
 # Flip a tile
+# publish position of aruco #47 
 ros2 launch detectors realsense_perstrans.launch.py
 # view rviz
 ros2 launch sixdof viewexample.fliptile.launch.py
