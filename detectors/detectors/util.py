@@ -51,9 +51,8 @@ def aruco(frame, drawframe=None):
 
 
 
-def perspective_transform(box_msg, x0 = -0.6, y0 = 0.0, dx = 0.135, dy = -0.19):
+def perspective_transform(box_msg, x0 = -0.6, y0 = 0.0, dx = 0.135, dy = -0.19, ref = [0,4,25,49]):
     data = np.array(box_msg).reshape((-1, 11))
-    ref = [0,4,25,49]
     if not all(np.isin(ref, data[:,0])): return
 
     ref_data = []
@@ -181,3 +180,10 @@ def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None, accur
         # self.get_logger().info(
         #     "Found Ball enclosed by radius %d about (%d,%d)" %
         #     (radius, x, y))
+def warp_point(M, x: int, y: int):
+    d = M[2, 0] * x + M[2, 1] * y + M[2, 2]
+
+    return np.array([
+        round((M[0, 0] * x + M[0, 1] * y + M[0, 2]) / d , 4), # x
+        round((M[1, 0] * x + M[1, 1] * y + M[1, 2]) / d , 4) # y
+    ])
