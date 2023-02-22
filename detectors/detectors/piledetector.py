@@ -45,7 +45,8 @@ class DetectorNode(Node):
         self.bridge = cv_bridge.CvBridge()
 
         # setup log prob
-        self.logprob = np.zeros((24,24), dtype='float64')
+        self.logprob = np.zeros((12,12), dtype='float64')
+        self.accurate_pos = np.zeros((12,12,2), dtype='float64')
 
         # Finally, subscribe to the incoming image topic.  Using a
         # queue size of one means only the most recent message is
@@ -78,7 +79,7 @@ class DetectorNode(Node):
 
         M = util.perspective_transform(msg_data)
 
-        util.piledetect(frame, drawframe, M, self.get_logger().info, self.logprob)
+        util.piledetect(frame, drawframe, M, self.get_logger().info, self.logprob, self.accurate_pos)
         # # Convert to HSV
         # hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
 
@@ -157,11 +158,13 @@ class DetectorNode(Node):
         x_grid, y_grid = np.unravel_index(np.argmin(self.logprob, axis=None), self.logprob.shape)
         my_msg = Float32MultiArray()
         if self.logprob[x_grid, y_grid]<-0.5:
-            x, y = util.grid2map(x_grid, y_grid)
-            my_msg.data = [x/100, y/100]
+            # x, y = util.grid2map(x_grid, y_grid)
+            # my_msg.data = [x/100, y/100]
+            self.get_logger().info(str( self.accurate_pos[x_grid, y_grid]))
+            my_msg.data = self.accurate_pos[x_grid, y_grid].tolist()
         else:
             my_msg.data = []
-        self.pub.publish(my_msg)
+        self.pub2.publish(my_msg)
 
 
         # Alternatively, publish the black/white image.

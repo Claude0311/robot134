@@ -24,7 +24,9 @@ setup(
     entry_points={
         'console_scripts': [
             'float = sixdof.floating_six:main',
-            'touch = sixdof.touch_aruco_6:main'
+            'touch = sixdof.touch_aruco_6:main',
+            'hitpile = sixdof.hitpile:main',
+            'flip    = sixdof.flip_tile:main'
         ],
     },
 )

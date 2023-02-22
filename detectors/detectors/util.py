@@ -51,7 +51,7 @@ def aruco(frame, drawframe=None):
 
 
 
-def perspective_transform(box_msg, x0 = -0.06, y0 = 0.0, dx = 0.135, dy = -0.19):
+def perspective_transform(box_msg, x0 = -0.6, y0 = 0.0, dx = 0.135, dy = -0.19):
     data = np.array(box_msg).reshape((-1, 11))
     ref = [0,4,25,49]
     if not all(np.isin(ref, data[:,0])): return
@@ -66,15 +66,17 @@ def perspective_transform(box_msg, x0 = -0.06, y0 = 0.0, dx = 0.135, dy = -0.19)
     return M
 
 def map2grid(x, y):
-    x_grid = int(x//5 + 12)
-    y_grid = int(y//5 + 12)
+    x = x + 60.0
+    x_grid = int(x//5 + 6)
+    y_grid = int(y//5 + 6)
     return x_grid, y_grid
 def grid2map(x_grid, y_grid):
-    x = (x_grid-12)*5 + 2.5
-    y = (y_grid-12)*5 + 2.5
+    x = (x_grid-6)*5 + 2.5
+    y = (y_grid-6)*5 + 2.5
+    x = x-60.0
     return x, y
 
-def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None):
+def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None, accurate_pos=None):
     # Convert to HSV
     hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
 
@@ -119,7 +121,7 @@ def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None):
         isPile = len(approx)!=4
         if M is not None:
             projected_cnt = cv2.perspectiveTransform(np.array(approx, dtype='float32'), M)
-            x, y, w, h = cv2.boundingRect(projected_cnt * 1000)
+            ((x, y), (w, h), _) = cv2.minAreaRect(projected_cnt * 1000)
             if w<30 or h<30 or w>200 or h>200: continue
             if not isPile:
                 ratio= float(w)/h
@@ -130,7 +132,10 @@ def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None):
             center = np.average(approx[:, 0, :], axis=0).astype(int)
             center_perp = cv2.perspectiveTransform(np.array([[center]], dtype='float32'), M)
             x_grid, y_grid = map2grid(center_perp[0,0,0]*100, center_perp[0,0,1]*100)
+            
             if 0<=x_grid<W and 0<=y_grid<H:
+                accurate_pos[x_grid, y_grid] = [x/1000, y/1000]
+                
                 if isPile:
                     logprob[x_grid, y_grid] -= SCALE
                 else:
@@ -149,7 +154,7 @@ def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None):
                 #     cv2.circle(drawframe, center, radius, color, -1)
 
                 color = int( 255 * abs(logprob[x_grid, y_grid]) )
-                if not isPile:
+                if logprob[x_grid, y_grid]>0:
                     cv2.drawContours(drawframe, [approx], -1, (0, 0, color), 2)
                 else:
                     cv2.drawContours(drawframe, [approx], -1, (color, 0, 0), 2)

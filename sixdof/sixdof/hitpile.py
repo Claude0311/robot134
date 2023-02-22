@@ -84,7 +84,7 @@ class Trajectory():
         # self.settarget(None)
 
         self.sub = self.node.create_subscription(
-            Float32MultiArray, '/target', self.settarget, 10)
+            Float32MultiArray, '/pile', self.settarget, 10)
     
     def print(self, *argv):
         for arg in argv:
@@ -93,14 +93,17 @@ class Trajectory():
     def settarget(self, msg=None):
         if self.phase != 1:
             # data = msg.data
-            if msg is None or len(msg.data)!=4:
+            if msg is None:
                 self.xtarget = np.array([-0.5, -0.1, 0.1]).reshape((-1,1))
                 # self.xtarget = np.array([data[0],data[1],0.1]).reshape((-1,1))
                 self.Rtarget = Rotx(np.pi) @ Rotz(0)
+            elif len(msg.data)!=2:
+                return
             else:
                 data = msg.data
-                self.xtarget = np.array([data[0],data[1], 0.01]).reshape((-1,1))
-                theta = atan2(data[3]-data[1], data[2]-data[0])
+                self.node.get_logger().info(str([data[0],data[1]]))
+                self.xtarget = np.array([data[0],data[1], 0.025]).reshape((-1,1))
+                theta = 0.0 #atan2(data[3]-data[1], data[2]-data[0])
                 self.Rtarget = Rotz(theta) @ Rotx(np.pi) #@ Rotz(-np.pi/4)
 
 
@@ -120,8 +123,6 @@ class Trajectory():
             self.eh = u
             self.alpha = alpha
 
-            self.node.get_logger().info(str(u ))
-            self.node.get_logger().info(str(alpha ))
 
             if self.phase==0: self.phase = 1
 
@@ -209,7 +210,7 @@ class Trajectory():
         T = 5
         nan = float('nan')
         loose = -0.8
-        tight = -1.4
+        tight = -1.2
         gripper_theta = loose
         gripper_v = nan
 
@@ -235,31 +236,29 @@ class Trajectory():
                 self.x_desire = None
 
         elif self.phase==2:
-            gripper_theta = loose + (t-self.t0)/5 * (tight-loose)
+            gripper_theta = loose #+ (t-self.t0)/5 * (tight-loose)
             # q = np.array([nan, nan, nan, nan, nan]).reshape((-1,1))
             # qdot = np.array([nan, nan, nan, nan, nan]).reshape((-1,1))
             q = self.q
-            qdot = self.q_dot
+            qdot = self.q_dot * 0
+
+            qdot[3,0] = 0.5 * np.cos((t-self.t0)/5 * np.pi*2)
+            q += qdot * dt
+
             if t>self.t0+5:
                 self.phase = 3
                 self.t0 = t
 
-            q_return = q.flatten().tolist()
-            q_return.insert(2, gripper_theta)
-            qdot_return = qdot.flatten().tolist()
-            qdot_return.insert(2, gripper_v)
-            return (q_return, qdot_return)
-
         elif self.phase==3:
             (q,qdot) = self.toLines(t, dt,  T)
-            gripper_theta = tight
+            gripper_theta = loose
 
             if t>self.t0+T:
                 self.phase = 4 
                 self.t0 = t
 
         elif self.phase==4:
-            gripper_theta = tight + (t-self.t0)/5* (loose-tight)
+            gripper_theta = loose #tight + (t-self.t0)/5* (loose-tight)
             # q = np.array([nan, nan, nan, nan, nan]).reshape((-1,1))
             # qdot = np.array([nan, nan, nan, nan, nan]).reshape((-1,1))
             q = self.q

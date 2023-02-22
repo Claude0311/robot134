@@ -27,7 +27,7 @@
   <joint name="theta1" type="continuous">
     <parent link="basemotor"/>
     <child  link="lbracket"/>
-    <origin xyz="0 0 0.0311" rpy="0 0 1.5708"/>
+    <origin xyz="0 0 0.0451" rpy="0 0 1.5708"/>
     <axis   xyz="0 0 1"/>
   </joint>
   
