@@ -100,7 +100,7 @@ class Trajectory():
             else:
                 data = msg.data
                 theta = atan2(data[3]-data[1], data[2]-data[0])
-                
+
                 self.xtarget = np.array([data[0],data[1], 0.01]).reshape((-1,1))
                 self.Rtarget = Rotz(theta) @ Rotx(np.pi)
 
@@ -189,9 +189,7 @@ class Trajectory():
             pd = np.vstack((xddot,wd))
 
             qdot = Jv_inv @ xddot + nullspace(Jv, Jv_inv) @ Jw_inv @ wd 
-            # qdot = Jw_inv @ wd 
-            # J = np.vstack((Jv, Jw))
-            # qdot = np.linalg.pinv(J, 0.1) @ pd
+            
             q = self.q + qdot * dt
             return (q,qdot)
 
@@ -215,7 +213,6 @@ class Trajectory():
 
         elif self.phase==0:
             self.t0 = t
-            # return None
             q = self.q
             qdot = self.q_dot
 
