@@ -97,11 +97,36 @@ class CtrlNode(Node):
             output.data = letters.find(self.word[self.index])
             self.pub2.publish(output)
             
+    def handle_letter(self, msg):
+        data = msg.data
+        self.waiting = False
+        [cx, cy, tx, ty, target] = data
+        letters = 'abcdefghijklmnopqrstuvwxyz'
+        if 0<=target<26 and letters[target]==self.word[self.index]:
+            mymsg = Float32MultiArray()
+            mymsg.data = [0, self.index, cx, cy, tx, ty]
+            self.pub(mymsg)
+        elif target == 26:
+            mymsg = Float32MultiArray()
+            mymsg.data = [1, -1, cx, cy, tx, ty]
+            self.pub(mymsg)
+        elif target == -1:
+            # pile
+            mymsg = Float32MultiArray()
+            mymsg.data = [2, -1, cx, cy]
+            self.pub(mymsg)
+
+        
 
 
     # Process
     def process(self, msg):
-        pass
+        if self.waiting:
+            self.t += 0.01
+            if self.t>10:
+                self.waiting = False
+                self.t = 0
+                # use flip or pile thing
 
 
 
