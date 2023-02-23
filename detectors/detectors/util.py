@@ -47,12 +47,12 @@ def aruco(frame, drawframe=None):
             box_msg.extend(bottomRight.flatten().tolist())
             box_msg.extend(bottomLeft.flatten().tolist())
     
-    return box_msg
+    return np.array(box_msg).reshape((-1, 11))
 
 
 
-def perspective_transform(box_msg, x0 = -0.6, y0 = 0.0, dx = 0.135, dy = -0.19, ref = [0,4,25,49]):
-    data = np.array(box_msg).reshape((-1, 11))
+def perspective_transform(data, x0 = -0.6, y0 = 0.0, dx = 0.135, dy = -0.19, ref = [0,4,25,49]):
+    
     if not all(np.isin(ref, data[:,0])): return
 
     ref_data = []

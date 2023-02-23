@@ -26,7 +26,9 @@ setup(
             'float = sixdof.floating_six:main',
             'touch = sixdof.touch_aruco_6:main',
             'hitpile = sixdof.hitpile:main',
-            'flip    = sixdof.flip_tile:main'
+            'flip    = sixdof.flip_tile:main',
+            'alltask = sixdof.alltask:main',
+            'ctrl    = sixdof.controller:main'
         ],
     },
 )

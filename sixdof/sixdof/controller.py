@@ -19,7 +19,7 @@ import cv_bridge
 from rclpy.node         import Node
 from sensor_msgs.msg    import Image
 import detectors.util as util
-from std_msgs.msg import Float32MultiArray, INT8, String
+from std_msgs.msg import Float32MultiArray, Int8, String
 
 #
 #  Detector Node Class
@@ -53,7 +53,7 @@ class CtrlNode(Node):
         self.pub = self.create_publisher(Float32MultiArray, name+'/do_action', 10)
         # To camera: decide next target
         # 0~25 for letter, 26 for blank
-        self.pub2 = self.create_publisher(INT8, name+'/settarget', 10)
+        self.pub2 = self.create_publisher(Int8, name+'/settarget', 10)
 
         # create_subscription
         # From user:   decide next letter to pick up
@@ -62,16 +62,15 @@ class CtrlNode(Node):
         self.sub = self.create_subscription(
             String, '/set_letter', self.set_letter, 1)
         self.sub2 = self.create_subscription(
-            INT8, '/cur_phase', self.handle_phase, 10
+            Int8, '/cur_phase', self.handle_phase, 10
         )
         self.sub3 = self.create_subscription(
-            Float32MultiArray, '/letter_target', self.handle_letter, 10
+            Float32MultiArray, '/lettertarget', self.handle_letter, 10
         )
 
         # Report.
         self.get_logger().info("Brain running...")
 
-        self.handle_phase({data:0})
 
     # Shutdown
     def shutdown(self):
@@ -82,8 +81,9 @@ class CtrlNode(Node):
         self.word = msg.data
         self.index = 0
     
-    def handle_phase(self, msg):
-        phase = msg.data
+    def handle_phase(self, msg=None):
+        self.get_logger().info('phase 0 get')
+        phase = msg.data if msg is not None else 0
         self.index += 1
         # word done
         if self.index>=len(self.word): return
@@ -93,7 +93,7 @@ class CtrlNode(Node):
             self.waiting = True
             
             letters = 'abcdefghijklmnopqrstuvwxyz'
-            output = INT8()
+            output = Int8()
             output.data = letters.find(self.word[self.index])
             self.pub2.publish(output)
             
@@ -101,31 +101,32 @@ class CtrlNode(Node):
         data = msg.data
         self.waiting = False
         [cx, cy, tx, ty, target] = data
+        target = int(target)
+        self.get_logger().info(str(target))
         letters = 'abcdefghijklmnopqrstuvwxyz'
+        mymsg = Float32MultiArray()
         if 0<=target<26 and letters[target]==self.word[self.index]:
-            mymsg = Float32MultiArray()
-            mymsg.data = [0, self.index, cx, cy, tx, ty]
-            self.pub(mymsg)
+            mymsg.data = [0.0, float(self.index), cx, cy, tx, ty]
         elif target == 26:
-            mymsg = Float32MultiArray()
-            mymsg.data = [1, -1, cx, cy, tx, ty]
-            self.pub(mymsg)
+            mymsg.data = [1.0, -1.0, cx, cy, tx, ty]
         elif target == -1:
             # pile
-            mymsg = Float32MultiArray()
-            mymsg.data = [2, -1, cx, cy]
-            self.pub(mymsg)
+            mymsg.data = [2.0, -1.0, cx, cy]
+        self.pub.publish(mymsg)
 
         
 
 
     # Process
     def process(self, msg):
+        self.handle_phase()
         if self.waiting:
-            self.t += 0.01
+            self.t += 0.1
             if self.t>10:
                 self.waiting = False
                 self.t = 0
+        else:
+            pass
                 # use flip or pile thing
 
 

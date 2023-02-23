@@ -31,6 +31,7 @@ setup(
             'perspec_trans = detectors.pers_trans:main',
             'detectaruco2  = detectors.detectaruco_w_pub:main',
             'pile          = detectors.piledetector:main',
+            'letters       = detectors.letter_detector:main'
         ],
     },
 )

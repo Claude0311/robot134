@@ -10,7 +10,7 @@ from threeDOF.KinematicChain    import KinematicChain
 from threeDOF.TransformHelpers  import *
 from math import atan2
 
-from std_msgs.msg import Float32MultiArray, INT8
+from std_msgs.msg import Float32MultiArray, Int8
 
 #
 #   Spline Helper
@@ -86,7 +86,7 @@ class Trajectory():
         self.sub = self.node.create_subscription(
             Float32MultiArray, '/do_action', self.settarget, 10)
         self.pub = self.node.create_publisher(
-            INT8, '/cur_phase', 10
+            Int8, '/cur_phase', 10
         )
     
     def print(self, *argv):
@@ -102,6 +102,8 @@ class Trajectory():
                 self.Rtarget = Rotx(np.pi) @ Rotz(0)
             else:
                 [action, index, cx, cy, tx, ty] = msg.data
+                action = int(action)
+                self.node.get_logger().info(str(action))
                 if action!=0: return
                 self.xtarget = np.array([cx, cy, 0.02]).reshape((-1,1))
                 theta = atan2(ty-cy, tx-cx)
@@ -255,7 +257,7 @@ class Trajectory():
             if t>self.t0+5:
                 self.t0 = t
                 self.phase = 0
-                mymsg = INT8()
+                mymsg = Int8()
                 mymsg.data = 0
                 self.pub.publish(mymsg)
         
@@ -283,7 +285,7 @@ class Trajectory():
 def main(args=None):
     # Initialize ROS and the generator node (100Hz) for the Trajectory.
     rclpy.init(args=args)
-    node = DemoNode('generator', Trajectory)
+    node = DemoNode('alltask', Trajectory)
 
     # Spin, until interrupted or the trajectory ends.
     rclpy.spin(node)
