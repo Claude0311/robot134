@@ -81,6 +81,9 @@ class Trajectory():
         # 2 -> grap
         # 3 -> move back to normal
         # 4 -> release
+        self.task = 0
+        # 0 -> pick up target
+        # 1 -> hit pile
         # self.settarget(None)
 
         self.sub = self.node.create_subscription(
@@ -94,32 +97,29 @@ class Trajectory():
             self.node.get_logger().info(str(arg))
 
     def settarget(self, msg=None):
-        if self.phase == 0:
-            # data = msg.data
-            if msg is None or len(msg.data)!=6:
-                self.node.get_logger().info('msg type wrong')
-                self.node.get_logger().info(str(msg.data))
-                return
-                # self.xtarget = [np.array([-0.5, -0.1, 0.1]).reshape((-1,1))]
-                # # self.xtarget = np.array([data[0],data[1],0.1]).reshape((-1,1))
-                # self.Rtarget = [Rotx(np.pi) @ Rotz(0)]
-            else:
-                [action, index, cx, cy, tx, ty] = msg.data
-                action = int(action)
-                self.node.get_logger().info(str(action))
-                if action!=0: return
-                xtarget = [self.xsafe]
-                Rtarget = [self.Rsafe]
+        if self.phase != 0: return
+        if msg is None:
+            self.node.get_logger().info('msg type wrong')
+            self.node.get_logger().info(str(msg.data))
+            return
+        data = msg.data
+        self.task = int(data[0])
+        if self.task==0:
+            self.node.get_logger().info('task: pick up tile')
 
-                theta = atan2(ty-cy, tx-cx)
-                cx = cx + 0.02 * np.cos(theta + np.pi/4)
-                cy = cy + 0.02 * np.sin(theta + np.pi/4)
+            [action, index, cx, cy, tx, ty] = msg.data
+            xtarget = [self.xsafe]
+            Rtarget = [self.Rsafe]
 
-                xtarget.append( np.array([cx, cy, 0.00]).reshape((-1,1)) )
-                Rtarget.append( Rotz(theta) @ Rotx(np.pi) )
+            theta = atan2(ty-cy, tx-cx)
+            cx = cx + 0.02 * np.cos(theta + np.pi/4)
+            cy = cy + 0.02 * np.sin(theta + np.pi/4)
 
-                xtarget.append( np.array([-0.6+index*0.06, 0.3, 0.02]).reshape((-1,1)) )
-                Rtarget.append( Rotz(np.pi/2) @ Rotx(np.pi) )
+            xtarget.append( np.array([cx, cy, -0.03]).reshape((-1,1)) )
+            Rtarget.append( Rotz(theta) @ Rotx(np.pi) )
+
+            xtarget.append( np.array([-0.6+index*0.06, 0.3, 0.02]).reshape((-1,1)) )
+            Rtarget.append( Rotz(np.pi/2) @ Rotx(np.pi) )
 
             self.eh = []
             self.alpha = []
@@ -142,7 +142,31 @@ class Trajectory():
             self.xtarget = xtarget
             self.Rtarget = Rtarget
 
-            if self.phase==0: self.phase = 1
+            self.phase = 1
+
+        elif self.task==2:
+            [_, _, cx, cy] = data
+            self.node.get_logger().info(str([cx, cy]))
+            self.xtarget = np.array([cx, cy, -0.02]).reshape((-1,1))
+            theta = atan2(cy, cx)
+            self.Rtarget = Rotz(theta) @ Rotx(np.pi)
+
+            #### calculate the eigenvector ####
+            R0f = (self.Rtarget).T @ self.Rsafe
+            w,v = np.linalg.eig( R0f )
+            index = np.argmin(np.abs(w-1.))
+            u = v[:,index].reshape((3,1))
+            u = np.real(u)
+            alpha = np.arccos((np.trace(R0f)-1)/2)
+            if not np.allclose(Rote(u,-alpha),R0f):
+                alpha = -alpha
+            ###################################
+
+            self.eh = u
+            self.alpha = alpha
+            self.phase = 1
+
+        else: return
 
     def setFlip(self, pos, v0 = None):
         if pos is None: self.q_before = self.q
@@ -180,7 +204,7 @@ class Trajectory():
         (q,qdot) = spline(t,  T, self.q0, self.qsafe)
         return (q,qdot)
 
-    def toLines(self, t_total, dt, T):
+    def movement_picktile(self, t_total, dt, T):
         t = t_total-self.t0
         if self.phase in [1, 3]:
             xtarget_higher = self.xtarget[1]*1
@@ -233,6 +257,156 @@ class Trajectory():
         else:
             (q, qdot) = spline(t, T, self.q_target, self.qsafe)
             return (q,qdot)
+            
+    def picktile_evaluate(self, t, dt):
+        T = 5
+        loose = -0.8
+        tight = -1.4
+        gripper_theta = loose
+
+        if self.phase==1:
+            (q,qdot) = self.movement_picktile(t, dt,  T)
+
+            if t>self.t0+T:
+                self.phase = 2
+                self.t0 = t
+                self.xtarget.pop(0)
+                self.Rtarget.pop(0)
+                self.eh.pop(0)
+                self.alpha.pop(0)
+                self.q_target = self.q
+                self.Rd = None
+                self.x_desire = None
+
+        elif self.phase==2:
+            gripper_theta = loose + (t-self.t0)/5 * (tight-loose)
+            q = self.q
+            qdot = self.q_dot
+            if t>self.t0+5:
+                self.phase = 3
+                self.t0 = t
+
+        elif self.phase==3:
+            (q,qdot) = self.movement_picktile(t, dt,  T)
+            gripper_theta = tight
+
+            if t>self.t0+T:
+                self.phase = 4 
+                self.t0 = t
+                self.xtarget.pop(0)
+                self.Rtarget.pop(0)
+                self.eh.pop(0)
+                self.alpha.pop(0)
+                self.q_target = self.q
+                self.Rd = None
+                self.x_desire = None
+
+        elif self.phase==4:
+            gripper_theta = tight + (t-self.t0)/5* (loose-tight)
+            q = self.q
+            qdot = self.q_dot
+            if t>self.t0+5:
+                self.t0 = t
+                self.phase = 5
+
+        elif self.phase==5:
+            (q, qdot) = self.movement_picktile(t, dt,  T)
+
+            if t>self.t0+5:
+                self.t0 = t
+                self.phase = 0
+                mymsg = Int8()
+                mymsg.data = 0
+                self.pub.publish(mymsg)
+
+        return (q, qdot, gripper_theta)
+
+    def movement_hitpile(self, t, dt, T):
+        if self.phase == 1:
+            xtarget_higher = self.xtarget*1
+            xtarget_higher[2] = 0.13
+            if t-self.t0<2/3*T:
+                (x_desire, xddot) = spline(t-self.t0, 2/3*T, self.xsafe, xtarget_higher)
+                (theta_desire, wd) = spline(t-self.t0, 2/3*T, 0, self.alpha)
+            else:
+                (x_desire, xddot) = spline(t-self.t0-2/3*T, 1/3*T, xtarget_higher, self.xtarget)
+                (theta_desire, wd) = spline(t-self.t0-2/3*T, 1/3*T, self.alpha, self.alpha)
+        
+            Jv = self.chain.Jv()
+            Jw = self.chain.Jw()
+            Jv_inv = np.linalg.pinv(Jv, 0.1)
+            Jw_inv = np.linalg.pinv(Jw, 0.1)
+
+            xq = self.chain.ptip()
+
+            R0 = self.Rsafe
+            wd = R0 @ self.eh * wd
+            
+
+            self.Rd = R0 @ Rote(self.eh, theta_desire)
+            self.x_desire = x_desire
+
+            self.xdot = xddot
+
+            if self.Rerr is not None:
+                xddot +=  self.lam * self.Rerr[:3]
+                wd += self.lam * self.Rerr[3:]
+            pd = np.vstack((xddot,wd))
+
+            qdot = Jv_inv @ xddot + nullspace(Jv, Jv_inv) @ Jw_inv @ wd 
+            # qdot = Jw_inv @ wd 
+            # J = np.vstack((Jv, Jw))
+            # qdot = np.linalg.pinv(J, 0.1) @ pd
+            q = self.q + qdot * dt
+            return (q,qdot)
+
+        else:
+            (q, qdot) = spline(t-self.t0, T, self.q_target, self.qsafe)
+            return (q,qdot)
+
+    def hitpile_evaluate(self, t, dt):
+        T = 5
+
+        if self.phase==1:
+            (q,qdot) = self.movement_hitpile(t, dt,  T)
+
+            if t>self.t0+T:
+                self.phase = 2
+                self.t0 = t
+                self.xtarget = None
+                self.q_target = self.q
+                self.Rd = None
+                self.x_desire = None
+
+        elif self.phase==2:
+            q = self.q
+            qdot = self.q_dot * 0
+
+            qdot[3,0] = 0.5 * np.cos((t-self.t0)/5 * np.pi*2)
+            q += qdot * dt
+
+            if t>self.t0+5:
+                self.phase = 3
+                self.t0 = t
+
+        elif self.phase==3:
+            (q,qdot) = self.movement_hitpile(t, dt,  T)
+
+            if t>self.t0+T:
+                self.phase = 4 
+                self.t0 = t
+
+        elif self.phase==4:
+            q = self.q
+            qdot = self.q_dot
+            if t>self.t0+5:
+                self.t0 = t
+                self.phase = 0
+                mymsg = Int8()
+                mymsg.data = 0
+                self.pub.publish(mymsg)
+        
+        return (q, qdot)
 
     # Evaluate at the given time.  This was last called (dt) ago.
     def evaluate(self, t, dt):
@@ -258,60 +432,12 @@ class Trajectory():
             q = self.q
             qdot = self.q_dot
 
-        elif self.phase==1:
-            (q,qdot) = self.toLines(t, dt,  T)
+        elif self.task==0:
+            (q, qdot, gripper_theta) = self.picktile_evaluate(t, dt)
 
-            if t>self.t0+T:
-                self.phase = 2
-                self.t0 = t
-                self.xtarget.pop(0)
-                self.Rtarget.pop(0)
-                self.eh.pop(0)
-                self.alpha.pop(0)
-                self.q_target = self.q
-                self.Rd = None
-                self.x_desire = None
+        elif self.task==2:
+            (q, qdot) = self.hitpile_evaluate(t, dt)
 
-        elif self.phase==2:
-            gripper_theta = loose + (t-self.t0)/5 * (tight-loose)
-            q = self.q
-            qdot = self.q_dot
-            if t>self.t0+5:
-                self.phase = 3
-                self.t0 = t
-
-        elif self.phase==3:
-            (q,qdot) = self.toLines(t, dt,  T)
-            gripper_theta = tight
-
-            if t>self.t0+T:
-                self.phase = 4 
-                self.t0 = t
-                self.xtarget.pop(0)
-                self.Rtarget.pop(0)
-                self.eh.pop(0)
-                self.alpha.pop(0)
-                self.q_target = self.q
-                self.Rd = None
-                self.x_desire = None
-
-        elif self.phase==4:
-            gripper_theta = tight + (t-self.t0)/5* (loose-tight)
-            q = self.q
-            qdot = self.q_dot
-            if t>self.t0+5:
-                self.t0 = t
-                self.phase = 5
-
-        elif self.phase==5:
-            (q, qdot) = self.toLines(t, dt,  T)
-
-            if t>self.t0+5:
-                self.t0 = t
-                self.phase = 0
-                mymsg = Int8()
-                mymsg.data = 0
-                self.pub.publish(mymsg)
         
         self.q = q
         self.chain.setjoints(self.q)

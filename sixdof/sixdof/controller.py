@@ -40,7 +40,9 @@ class CtrlNode(Node):
         self.word = 'robot'
         self.index = -1
 
-        self.t = 0
+        self.timer = self.create_timer(0.01, self.process)
+        self.t  = 0.0
+        self.dt = self.timer.timer_period_ns * 1e-9
         self.waiting = False
 
         # create_publisher
@@ -118,13 +120,17 @@ class CtrlNode(Node):
 
 
     # Process
-    def process(self, msg):
-        self.handle_phase()
+    def process(self):
         if self.waiting:
-            self.t += 0.1
+            self.t += self.dt
             if self.t>10:
                 self.waiting = False
                 self.t = 0
+                self.get_logger().info('try hit pile')
+                output = Int8()
+                output.data = -1
+                self.pub2.publish(output)
+                self.index -= 1
         else:
             pass
                 # use flip or pile thing
