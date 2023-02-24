@@ -31,3 +31,11 @@ ros2 launch detectors realsense_perstrans.launch.py
 ros2 launch sixdof viewexample.fliptile.launch.py
 # run hebi
 ros2 launch sixdof runexample.fliptile.launch.py
+
+# combine all
+ros2 launch sixdof viewexample.alltask.launch.py
+ros2 launch sixdof runexample.alltask.launch.py
+
+# ros2 topic pub -1 /brain/settarget /std_msgs/string '{"data":"0"}'
+ros2 topic pub -1 /cur_phase std_msgs/Int8 '{"data":"0"}'
+ros2 topic pub -1 /set_letter std_msgs/String '{"data":"boot"}'

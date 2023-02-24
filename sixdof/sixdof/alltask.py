@@ -57,8 +57,8 @@ class Trajectory():
         self.Rsafe = safepos[1]
         
         
-        self.xtarget = None #np.array([-0.5, -0.3, 0.0]).reshape((-1, 1))
-        self.Rtarget = None #
+        self.xtarget = [] #np.array([-0.5, -0.3, 0.0]).reshape((-1, 1))
+        self.Rtarget = [] #
         self.eh = None      #eigenvector for rotation
         self.alpha = None   #angle to rotate
         self.Rerr = None
@@ -97,31 +97,50 @@ class Trajectory():
         if self.phase == 0:
             # data = msg.data
             if msg is None or len(msg.data)!=6:
-                self.xtarget = np.array([-0.5, -0.1, 0.1]).reshape((-1,1))
-                # self.xtarget = np.array([data[0],data[1],0.1]).reshape((-1,1))
-                self.Rtarget = Rotx(np.pi) @ Rotz(0)
+                self.node.get_logger().info('msg type wrong')
+                self.node.get_logger().info(str(msg.data))
+                return
+                # self.xtarget = [np.array([-0.5, -0.1, 0.1]).reshape((-1,1))]
+                # # self.xtarget = np.array([data[0],data[1],0.1]).reshape((-1,1))
+                # self.Rtarget = [Rotx(np.pi) @ Rotz(0)]
             else:
                 [action, index, cx, cy, tx, ty] = msg.data
                 action = int(action)
                 self.node.get_logger().info(str(action))
                 if action!=0: return
-                self.xtarget = np.array([cx, cy, 0.02]).reshape((-1,1))
+                xtarget = [self.xsafe]
+                Rtarget = [self.Rsafe]
+
                 theta = atan2(ty-cy, tx-cx)
-                self.Rtarget = Rotz(theta) @ Rotx(np.pi)
+                cx = cx + 0.02 * np.cos(theta + np.pi/4)
+                cy = cy + 0.02 * np.sin(theta + np.pi/4)
 
-            #### calculate the eigenvector ####
-            R0f = (self.Rtarget).T @ self.Rsafe
-            w,v = np.linalg.eig( R0f )
-            index = np.argmin(np.abs(w-1.))
-            u = v[:,index].reshape((3,1))
-            u = np.real(u)
-            alpha = np.arccos((np.trace(R0f)-1)/2)
-            if not np.allclose(Rote(u,-alpha),R0f):
-                alpha = -alpha
-            ###################################
+                xtarget.append( np.array([cx, cy, 0.00]).reshape((-1,1)) )
+                Rtarget.append( Rotz(theta) @ Rotx(np.pi) )
 
-            self.eh = u
-            self.alpha = alpha
+                xtarget.append( np.array([-0.6+index*0.06, 0.3, 0.02]).reshape((-1,1)) )
+                Rtarget.append( Rotz(np.pi/2) @ Rotx(np.pi) )
+
+            self.eh = []
+            self.alpha = []
+
+            for ph in [1, 2]:
+                #### calculate the eigenvector ####
+                R0f = (Rtarget[ph]).T @ Rtarget[ph-1]
+                w,v = np.linalg.eig( R0f )
+                index = np.argmin(np.abs(w-1.))
+                u = v[:,index].reshape((3,1))
+                u = np.real(u)
+                alpha = np.arccos((np.trace(R0f)-1)/2)
+                if not np.allclose(Rote(u,-alpha),R0f):
+                    alpha = -alpha
+                ###################################
+
+                self.eh.append( u )
+                self.alpha.append( alpha )
+
+            self.xtarget = xtarget
+            self.Rtarget = Rtarget
 
             if self.phase==0: self.phase = 1
 
@@ -161,16 +180,30 @@ class Trajectory():
         (q,qdot) = spline(t,  T, self.q0, self.qsafe)
         return (q,qdot)
 
-    def toLines(self, t, dt, T):
-        if self.phase == 1:
-            xtarget_higher = self.xtarget*1
+    def toLines(self, t_total, dt, T):
+        t = t_total-self.t0
+        if self.phase in [1, 3]:
+            xtarget_higher = self.xtarget[1]*1
+            xfrom_higher = self.xtarget[0]*1
             xtarget_higher[2] = 0.13
-            if t-self.t0<2/3*T:
-                (x_desire, xddot) = spline(t-self.t0, 2/3*T, self.xsafe, xtarget_higher)
-                (theta_desire, wd) = spline(t-self.t0, 2/3*T, 0, self.alpha)
+            xfrom_higher[2] = 0.13
+            if self.phase == 1:
+                if t<2/3*T:
+                    (x_desire, xddot) = spline(t, 2/3*T, self.xtarget[0], xtarget_higher)
+                    (theta_desire, wd) = spline(t, 2/3*T, 0, self.alpha[0])
+                else:
+                    (x_desire, xddot) = spline(t-2/3*T, 1/3*T, xtarget_higher, self.xtarget[1])
+                    (theta_desire, wd) = spline(t-2/3*T, 1/3*T, self.alpha[0], self.alpha[0])
             else:
-                (x_desire, xddot) = spline(t-self.t0-2/3*T, 1/3*T, xtarget_higher, self.xtarget)
-                (theta_desire, wd) = spline(t-self.t0-2/3*T, 1/3*T, self.alpha, self.alpha)
+                if t<1/4*T:
+                    (x_desire, xddot) = spline(t, 1/4*T, self.xtarget[0], xfrom_higher)
+                    (theta_desire, wd) = spline(t, 1/4*T, 0, 0)
+                elif t<3/4*T:
+                    (x_desire, xddot) = spline(t-1/4*T, 1/2*T, xfrom_higher, xtarget_higher)
+                    (theta_desire, wd) = spline(t-1/4*T, 1/2*T, 0, self.alpha[0])
+                else:
+                    (x_desire, xddot) = spline(t-3/4*T, 1/4*T, xtarget_higher, self.xtarget[1])
+                    (theta_desire, wd) = spline(t-3/4*T, 1/4*T, self.alpha[0], self.alpha[0])
         
             Jv = self.chain.Jv()
             Jw = self.chain.Jw()
@@ -179,11 +212,11 @@ class Trajectory():
 
             xq = self.chain.ptip()
 
-            R0 = self.Rsafe
-            wd = R0 @ self.eh * wd
+            R0 = self.Rtarget[0]
+            wd = R0 @ self.eh[0] * wd
             
 
-            self.Rd = R0 @ Rote(self.eh, theta_desire)
+            self.Rd = R0 @ Rote(self.eh[0], theta_desire)
             self.x_desire = x_desire
 
             self.xdot = xddot
@@ -194,14 +227,11 @@ class Trajectory():
             pd = np.vstack((xddot,wd))
 
             qdot = Jv_inv @ xddot + nullspace(Jv, Jv_inv) @ Jw_inv @ wd 
-            # qdot = Jw_inv @ wd 
-            # J = np.vstack((Jv, Jw))
-            # qdot = np.linalg.pinv(J, 0.1) @ pd
             q = self.q + qdot * dt
             return (q,qdot)
 
         else:
-            (q, qdot) = spline(t-self.t0, T, self.q_target, self.qsafe)
+            (q, qdot) = spline(t, T, self.q_target, self.qsafe)
             return (q,qdot)
 
     # Evaluate at the given time.  This was last called (dt) ago.
@@ -217,9 +247,14 @@ class Trajectory():
             (q,qdot) = self.toSafe(t, dt,  T)
             self.t0 = t
 
+            if t>=T-dt:
+                self.phase = 0
+                mymsg = Int8()
+                mymsg.data = 0
+                self.pub.publish(mymsg)
+
         elif self.phase==0:
             self.t0 = t
-            # return None
             q = self.q
             qdot = self.q_dot
 
@@ -229,7 +264,10 @@ class Trajectory():
             if t>self.t0+T:
                 self.phase = 2
                 self.t0 = t
-                self.xtarget = None
+                self.xtarget.pop(0)
+                self.Rtarget.pop(0)
+                self.eh.pop(0)
+                self.alpha.pop(0)
                 self.q_target = self.q
                 self.Rd = None
                 self.x_desire = None
@@ -249,11 +287,25 @@ class Trajectory():
             if t>self.t0+T:
                 self.phase = 4 
                 self.t0 = t
+                self.xtarget.pop(0)
+                self.Rtarget.pop(0)
+                self.eh.pop(0)
+                self.alpha.pop(0)
+                self.q_target = self.q
+                self.Rd = None
+                self.x_desire = None
 
         elif self.phase==4:
             gripper_theta = tight + (t-self.t0)/5* (loose-tight)
             q = self.q
             qdot = self.q_dot
+            if t>self.t0+5:
+                self.t0 = t
+                self.phase = 5
+
+        elif self.phase==5:
+            (q, qdot) = self.toLines(t, dt,  T)
+
             if t>self.t0+5:
                 self.t0 = t
                 self.phase = 0

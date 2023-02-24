@@ -79,7 +79,7 @@ class CtrlNode(Node):
 
     def set_letter(self, msg):
         self.word = msg.data
-        self.index = 0
+        self.index = -1
     
     def handle_phase(self, msg=None):
         self.get_logger().info('phase 0 get')
