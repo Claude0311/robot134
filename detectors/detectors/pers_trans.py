@@ -68,13 +68,13 @@ class TransNode(Node):
         
         # self.get_logger().info(str(self.tags))
 
-        target = 47
-        if all(x in self.tags.keys() for x in [0,4,25,49, target]):
-            pt_from = np.float32([self.tags[0][0]['center'], self.tags[4][0]['center'], self.tags[25][0]['center'], self.tags[49][0]['center']])
-            x0 = -60.0 * 0.01
+        target = 49
+        if all(x in self.tags.keys() for x in [46, 47, 48, 49, target]):
+            pt_from = np.float32([self.tags[46][0]['center'], self.tags[47][0]['center'], self.tags[48][0]['center'], self.tags[49][0]['center']])
+            x0 = -80.0 * 0.01
             y0 = 0.0 * 0.01
-            dx = +13.5 * 0.01
-            dy = -19.0 * 0.01
+            dx = +52.0 * 0.01
+            dy = -52.0 * 0.01
             pt_to = np.float32([[x0, y0], [x0+dx, y0], [x0, y0+dy], [x0+dx, y0+dy]])
             pt_target = np.float32(self.tags[target][0]['center'])
             pt_ori = (np.float32(self.tags[target][0]['corners'][:2])+np.float32(self.tags[target][0]['corners'][2:4]))/2

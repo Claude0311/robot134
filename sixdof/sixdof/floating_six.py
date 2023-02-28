@@ -95,7 +95,7 @@ class DemoNode(Node):
         return self.grabpos
 
     def gravity(self, pos):
-        if pos is None: return (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        if pos is None: return (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         scale = self.gravity_scale
         (A, B, C, D) = (0.0*scale, -0.1*scale, -0.5*scale, -2.75*scale)#(0.01*scale, 0.1*scale, -0.01*scale, -1.0*scale)
         (_,  t1, _, t2, t3, _) = list(pos)
@@ -103,7 +103,7 @@ class DemoNode(Node):
         t2 = -t2
         tau3 = 0.5 * cos(t1+t2+t3)  + 0.01 * sin(t1+t2+t3)
         tau2 = -tau3 - 5.0 * cos(t1+t2)
-        tau1 = tau2 - 6.0 * cos(t1) * scale
+        tau1 = tau2 - 4.0 * cos(t1) * scale
         return (0.0, tau1, 0.0, tau2, tau3, 0.0)
 
 
@@ -131,7 +131,7 @@ class DemoNode(Node):
         self.cmdmsg.name         = ['theta1', 'theta2', 'grip', 'theta3', 'theta4', 'theta5']
         self.cmdmsg.position     = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.cmdmsg.velocity     = (nan, nan, nan, nan, nan, nan)
-        self.cmdmsg.effort       =(nan, nan, nan, nan, nan, nan) # self.gravity(self.actpos)
+        self.cmdmsg.effort       = self.gravity(self.actpos) #(nan, nan, nan, nan, nan, nan) #
         self.cmdpub.publish(self.cmdmsg)
 
 

@@ -51,7 +51,7 @@ def aruco(frame, drawframe=None):
 
 
 
-def perspective_transform(data, x0 = -0.6, y0 = 0.0, dx = 0.135, dy = -0.19, ref = [0,4,25,49]):
+def perspective_transform(data, x0 = -0.80, y0 = 0.00, dx = 0.52, dy = -0.52, ref = [46,47,48,49]):
     
     if not all(np.isin(ref, data[:,0])): return
 
@@ -95,13 +95,13 @@ def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None, accur
     
     # Threshold in Hmin/max, Smin/max, Vmin/max
     hsvLower = ( 0 ,  0 , 0)
-    hsvUpper = (255, 100, 255)
+    hsvUpper = (255, 120, 255)
     binary = cv2.inRange(hsv, hsvLower, hsvUpper)
 
     # Erode and Dilate. Definitely adjust the iterations!
-    binary = cv2.erode( binary, None, iterations=1)
-    binary = cv2.dilate(binary, None, iterations=2)
-    binary = cv2.erode( binary, None, iterations=1)
+    binary = cv2.erode( binary, None, iterations=5)
+    binary = cv2.dilate(binary, None, iterations=10)
+    binary = cv2.erode( binary, None, iterations=5)
 
 
     # Find contours in the mask and initialize the current
@@ -110,12 +110,12 @@ def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None, accur
         binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # handle probability
-    SCALE = 0.02  # smaller means grow slower
+    SCALE = 0.01  # smaller means grow slower
     logprob *= (1 - SCALE)
     W, H = logprob.shape
     # Draw all contours on the original image for debugging.
     for cnt in contours:
-        epsilon = 0.02*cv2.arcLength(cnt,True)
+        epsilon = 0.01*cv2.arcLength(cnt,True)
         approx = cv2.approxPolyDP(cnt,epsilon,True)
         isPile = len(approx)!=4
         if M is not None:

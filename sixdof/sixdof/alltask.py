@@ -103,6 +103,7 @@ class Trajectory():
             self.node.get_logger().info(str(msg.data))
             return
         data = msg.data
+        if len(data)==0: return
         self.task = int(data[0])
         if self.task==0:
             self.node.get_logger().info('task: pick up tile')
@@ -115,7 +116,7 @@ class Trajectory():
             cx = cx + 0.02 * np.cos(theta + np.pi/4)
             cy = cy + 0.02 * np.sin(theta + np.pi/4)
 
-            xtarget.append( np.array([cx, cy, -0.03]).reshape((-1,1)) )
+            xtarget.append( np.array([cx, cy, 0.02]).reshape((-1,1)) )
             Rtarget.append( Rotz(theta) @ Rotx(np.pi) )
 
             xtarget.append( np.array([-0.6+index*0.06, 0.3, 0.02]).reshape((-1,1)) )
@@ -147,7 +148,7 @@ class Trajectory():
         elif self.task==2:
             [_, _, cx, cy] = data
             self.node.get_logger().info(str([cx, cy]))
-            self.xtarget = np.array([cx, cy, -0.02]).reshape((-1,1))
+            self.xtarget = np.array([cx, cy, 0.01]).reshape((-1,1))
             theta = atan2(cy, cx)
             self.Rtarget = Rotz(theta) @ Rotx(np.pi)
 
@@ -255,7 +256,13 @@ class Trajectory():
             return (q,qdot)
 
         else:
-            (q, qdot) = spline(t, T, self.q_target, self.qsafe)
+            tmp_qtarget = self.q_target * 1
+            tmp_qtarget[1] = 0.9*self.q_target[1] + 0.1*self.qsafe[1]
+
+            if t < 1/4*T:
+                (q, qdot) = spline(t, 1/4*T, self.q_target, tmp_qtarget)
+            else:
+                (q, qdot) = spline(t-1/4*T, 3/4*T, tmp_qtarget, self.qsafe)
             return (q,qdot)
             
     def picktile_evaluate(self, t, dt):

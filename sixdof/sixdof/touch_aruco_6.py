@@ -99,11 +99,12 @@ class Trajectory():
                 self.Rtarget = Rotx(np.pi) @ Rotz(0)
             else:
                 data = msg.data
+                # self.xtarget = np.array([-0.75,0.0, 0.01]).reshape((-1,1))
                 self.xtarget = np.array([data[0],data[1], 0.01]).reshape((-1,1))
                 theta = atan2(data[3]-data[1], data[2]-data[0])
                 self.Rtarget = Rotz(theta) @ Rotx(np.pi) #@ Rotz(-np.pi/4)
 
-
+            self.node.get_logger().info(str([data[0],data[1]]))
             # self.node.get_logger().info(str(self.Rtarget ))
             # self.node.get_logger().info(str(self.Rsafe ))
             #### calculate the eigenvector ####
@@ -120,8 +121,8 @@ class Trajectory():
             self.eh = u
             self.alpha = alpha
 
-            self.node.get_logger().info(str(u ))
-            self.node.get_logger().info(str(alpha ))
+            # self.node.get_logger().info(str(u ))
+            # self.node.get_logger().info(str(alpha ))
 
             if self.phase==0: self.phase = 1
 
@@ -178,6 +179,8 @@ class Trajectory():
             Jw_inv = np.linalg.pinv(Jw, 0.1)
 
             xq = self.chain.ptip()
+            self.node.get_logger().info('str(xq)')
+            self.node.get_logger().info(str(xq))
 
             R0 = self.Rsafe
             wd = R0 @ self.eh * wd

@@ -6,7 +6,7 @@ source ~/robotws/install/setup.bash
 # Rerun everytime you change the launch file
 cd ~/robotws
 colcon build --symlink-install
-
+colcon build --symlink-install --packages-select sixdof
 # Show camera image
 rqt
 

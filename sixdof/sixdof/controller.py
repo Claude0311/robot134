@@ -123,7 +123,7 @@ class CtrlNode(Node):
     def process(self):
         if self.waiting:
             self.t += self.dt
-            if self.t>10:
+            if self.t>5:
                 self.waiting = False
                 self.t = 0
                 self.get_logger().info('try hit pile')

@@ -23,11 +23,11 @@
     <origin xyz="0 0 0.02" rpy="0 0 0"/>
   </joint>
 
-  <!-- Base motor.  Thickness: X5 = 31.1mm, X8 = 45.1mm -->
+  <!-- Base motor.  Thickness: X5 = 31.1mm, X8 = 45.1mm, X8-9 = 50.1mm-->
   <joint name="theta1" type="continuous">
     <parent link="basemotor"/>
     <child  link="lbracket"/>
-    <origin xyz="0 0 0.0451" rpy="0 0 1.5708"/>
+    <origin xyz="0 0 0.045" rpy="0 0 1.5708"/>
     <axis   xyz="0 0 1"/>
   </joint>
   
@@ -42,22 +42,22 @@
   <joint name="theta2" type="continuous">
     <parent link="shouldermotor"/>
     <child  link="upperarm"/>
-    <origin xyz="0 0 0.0451" rpy="0 0 -1.5708"/>
+    <origin xyz="0 0 0.05" rpy="0 0 -1.5708"/>
     <axis   xyz="0 0 1"/>
   </joint>
 
-  <!-- Shift across the upper arm (1/4in thickness) -->
+  <!-- Shift across the upper arm (10mm thickness) -->
   <joint name="upperarm" type="fixed">
     <parent link="upperarm"/>
     <child  link="elbowmotor"/>
-    <origin xyz="0.395 0 0.0127" rpy="0 0 0"/>
+    <origin xyz="0.395 0 0.01" rpy="0 0 0"/>
   </joint>
 
   <!-- Elbow motor.  Thickness: X5 = 31.1mm, X8 = 45.1mm -->
   <joint name="theta3" type="continuous">
     <parent link="elbowmotor"/>
     <child  link="lowerarm"/>
-    <origin xyz="0 0 0.0311" rpy="0 0 0"/>
+    <origin xyz="0 0 0.031" rpy="0 0 0"/>
     <axis   xyz="0 0 1"/>
   </joint>
 
@@ -88,19 +88,19 @@
   <joint name="theta5" type="continuous">
     <parent link="fingermotor"/>
     <child  link="finger"/>
-    <origin xyz="0 0 0.0311" rpy="0 0 0"/>
+    <origin xyz="0 0 0.031" rpy="0 0 0"/>
     <axis   xyz="0 0 1"/>
   </joint>
 
-  <!-- Shift across the palm (1/4in thickness) -->
+  <!-- Shift across the gripper-->
   <joint name="finger" type="fixed">
     <parent link="finger"/>
     <child  link="tip"/>
-    <origin xyz="0 0 0.09" rpy="0 0 0.7854"/>
+    <origin xyz="0 0 0.105" rpy="0 0 0.7854"/>
     <axis   xyz="0 0 1"/>
   </joint>
 
-  
+
   <!-- *************************************************** -->
   <!-- *************** Visual Link Elements ************** -->
   <!-- *************************************************** -->
@@ -110,7 +110,9 @@
   <!-- Colors -->
   <material name="wood">  <color rgba="0.82 0.62 0.04 1"/>  </material>
   <material name="hebi">  <color rgba="0.82 0.06 0.06 1"/>  </material>
-  <material name="plastic">  <color rgba="1.00 1.00 1.00 1"/>  </material>
+  <material name="green">  <color rgba="0.21 0.71 0.52 1"/>  </material>
+  <material name="orange">  <color rgba="0.97 0.41 0.05 1"/>  </material>
+  <material name="plastic">  <color rgba="1.00 1.00 1.00 0.5"/>  </material>
 
   <!-- World can't take a visual element (at least in Gazebo). -->
   <link name="world"/>
@@ -122,7 +124,7 @@
   <link name="basemotor">
     <visual>
       <geometry>
-        <mesh filename="package://basic134/meshes/X5.stl"
+        <mesh filename="package://basic134/meshes/X8.stl"
 	      scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="hebi"/>
@@ -135,7 +137,7 @@
         <mesh filename="package://basic134/meshes/Lbracket.stl"
 		scale="1.0 1.0 1.0"/>
       </geometry>
-      <material name="plastic"/>
+      <material name="green"/>
     </visual>
   </link>
 
@@ -199,14 +201,15 @@
 
   <link name="palm">
     <visual>
+      <origin xyz="0.05 -0.04 0.0" rpy="1.5708 0 3.14159"/>
       <geometry>
-        <mesh filename="package://basic134/meshes/Lbracket.stl"
-		scale="0.9 1.0 1.0"/>
+        <mesh filename="package://basic134/meshes/wrist_Lbracket.stl"
+		scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="plastic"/>
+      <material name="orange"/>
     </visual>
   </link>
-
+  
   <link name="fingermotor">
     <visual>
       <geometry>
@@ -217,17 +220,17 @@
     </visual>
   </link>
   <link name="finger"/>
+  
   <link name="tip">
     <visual>
       <origin
-          xyz="0 0 0"
-          rpy="-1.5707 0 0"
-      />
+          xyz="-0.05569 0.04 -0.12"
+	  rpy="1.5707 0 0"/>
       <geometry>
-        <mesh filename="package://basic134/meshes/gripper.stl"
-	      scale="0.005 0.005 0.005"/>
+        <mesh filename="package://basic134/meshes/gripper_tips.stl"
+	      scale="0.001 0.001 0.001"/>
       </geometry>
-      <material name="plastic"/>
+      <material name="green"/>
     </visual>
   </link>
 

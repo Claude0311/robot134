@@ -47,7 +47,7 @@ def generate_launch_description():
         name       = 'robot_state_publisher', 
         package    = 'robot_state_publisher',
         executable = 'robot_state_publisher',
-        output     = 'screen',
+       output     = 'screen',
         parameters = [{'robot_description': robot_description}])
 
     # Configure a node for RVIZ
