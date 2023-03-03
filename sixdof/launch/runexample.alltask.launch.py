@@ -43,8 +43,9 @@ def generate_launch_description():
         package    = 'rviz2',
         executable = 'rviz2',
         output     = 'screen',
-        arguments  = ['-d', rvizcfg],
-        on_exit    = Shutdown())
+        arguments  = ['-d', rvizcfg]
+        # on_exit    = Shutdown())
+    )
 
     # Configure a node for Robot URDF
     node_urdf = Node(

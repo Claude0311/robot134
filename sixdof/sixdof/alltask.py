@@ -148,7 +148,7 @@ class Trajectory():
         elif self.task==2:
             [_, _, cx, cy] = data
             self.node.get_logger().info(str([cx, cy]))
-            self.xtarget = np.array([cx, cy, 0.01]).reshape((-1,1))
+            self.xtarget = np.array([cx, cy, 0.02]).reshape((-1,1))
             theta = atan2(cy, cx)
             self.Rtarget = Rotz(theta) @ Rotx(np.pi)
 
@@ -373,6 +373,9 @@ class Trajectory():
 
     def hitpile_evaluate(self, t, dt):
         T = 5
+        loose = -0.8
+        tight = -1.4
+        gripper_theta = loose
 
         if self.phase==1:
             (q,qdot) = self.movement_hitpile(t, dt,  T)
@@ -388,13 +391,33 @@ class Trajectory():
         elif self.phase==2:
             q = self.q
             qdot = self.q_dot * 0
+            t_inner = t-self.t0
 
-            qdot[3,0] = 0.5 * np.cos((t-self.t0)/5 * np.pi*2)
-            q += qdot * dt
+            if t_inner<1:
+                q = self.q
+                qdot = self.q_dot
+                gripper_theta = loose + (t_inner) * (tight-loose)
 
-            if t>self.t0+5:
+            elif 1<=t_inner<3:
+                qdot[1, 0] = - 0.1 * np.sin((t_inner-1)/2 * np.pi)
+                qdot[3,0] = - 0.5 * np.sin((t_inner-1)/2 * np.pi)
+                q += qdot * dt
+                gripper_theta = tight
+
+            elif 3<=t_inner<4:
+                q = self.q
+                qdot = self.q_dot
+                gripper_theta = tight - (t_inner-3)*(tight-loose)
+            
+            else: #4~6
+                qdot[3,0] = + 0.5 * np.sin((t_inner-4)/2 * np.pi)
+                q += qdot * dt
+                gripper_theta = loose
+
+            if t>self.t0+6:
                 self.phase = 3
                 self.t0 = t
+                self.q_target = self.q
 
         elif self.phase==3:
             (q,qdot) = self.movement_hitpile(t, dt,  T)
@@ -413,7 +436,7 @@ class Trajectory():
                 mymsg.data = 0
                 self.pub.publish(mymsg)
         
-        return (q, qdot)
+        return (q, qdot, gripper_theta)
 
     # Evaluate at the given time.  This was last called (dt) ago.
     def evaluate(self, t, dt):
@@ -443,7 +466,7 @@ class Trajectory():
             (q, qdot, gripper_theta) = self.picktile_evaluate(t, dt)
 
         elif self.task==2:
-            (q, qdot) = self.hitpile_evaluate(t, dt)
+            (q, qdot, gripper_theta) = self.hitpile_evaluate(t, dt)
 
         
         self.q = q

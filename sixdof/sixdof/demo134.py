@@ -115,7 +115,7 @@ class DemoNode(Node):
         t2 = -t2
         tau3 = 0.5 * cos(t1+t2+t3)  + 0.01 * sin(t1+t2+t3)
         tau2 = -tau3 - 5.0 * cos(t1+t2)
-        tau1 = tau2 - 4.0 * cos(t1) * scale
+        tau1 = tau2 - 5.0 * cos(t1) * scale
         return (0.0, tau1, 0.0, tau2, tau3, 0.0)
 
 

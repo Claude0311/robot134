@@ -10,6 +10,12 @@ green  = (  0, 255,   0)
 blue   = (  0,   0, 255)
 yellow = (255, 255,   0)
 white  = (255, 255, 255)
+black  = (  0,   0,   0)
+
+X0 = -0.80
+Y0 = 0.00
+DX = 0.52
+DY = -0.52
 
 def aruco(frame, drawframe=None):
     # Detect.
@@ -51,7 +57,7 @@ def aruco(frame, drawframe=None):
 
 
 
-def perspective_transform(data, x0 = -0.80, y0 = 0.00, dx = 0.52, dy = -0.52, ref = [46,47,48,49]):
+def perspective_transform(data, x0 = X0, y0 = Y0, dx = DX, dy = DY, ref = [46,47,48,49]):
     
     if not all(np.isin(ref, data[:,0])): return
 
@@ -65,14 +71,16 @@ def perspective_transform(data, x0 = -0.80, y0 = 0.00, dx = 0.52, dy = -0.52, re
     return M
 
 def map2grid(x, y):
-    x = x + 60.0
-    x_grid = int(x//5 + 6)
-    y_grid = int(y//5 + 6)
+    x = x - X0*100 + 2.5
+    y = -y + 2.5
+    x_grid = int(x//5)
+    y_grid = int(y//5)
     return x_grid, y_grid
 def grid2map(x_grid, y_grid):
-    x = (x_grid-6)*5 + 2.5
-    y = (y_grid-6)*5 + 2.5
-    x = x-60.0
+    x = (x_grid)*5
+    y = (y_grid)*5
+    x = x + X0*100
+    y = -y
     return x, y
 
 def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None, accurate_pos=None):
@@ -91,17 +99,31 @@ def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None, accur
         # Report the center HSV values.  Note the row comes first.
         # self.get_logger().info(
         # myprint("HSV = (%3d, %3d, %3d)" % tuple(hsv[yc, xc]))
-
     
+
     # Threshold in Hmin/max, Smin/max, Vmin/max
-    hsvLower = ( 0 ,  0 , 0)
-    hsvUpper = (255, 120, 255)
-    binary = cv2.inRange(hsv, hsvLower, hsvUpper)
+    binary = 255 - cv2.inRange(hsv, (40, 0, 0), (100, 255,255))
+
+    # hsvLower = ( 0 ,  0 , 0)
+    # hsvUpper = (50, 255, 255)
+    # binary = cv2.inRange(hsv, hsvLower, hsvUpper)
+    # # binary = cv2.bitwise_and(hsv, hsv, mask=mask1)
+    # hsv[:,:,0] = mask1
+    # hsv[:,:,1] = mask1
+    # hsv[:,:,2] = mask1
+    
+    # return hsv
 
     # Erode and Dilate. Definitely adjust the iterations!
-    binary = cv2.erode( binary, None, iterations=5)
-    binary = cv2.dilate(binary, None, iterations=10)
-    binary = cv2.erode( binary, None, iterations=5)
+    binary = cv2.erode( binary, None, iterations=1)
+    binary = cv2.dilate(binary, None, iterations=2)
+    binary = cv2.erode( binary, None, iterations=1)
+
+    # hsv[:,:,0] = binary
+    # hsv[:,:,1] = binary
+    # hsv[:,:,2] = binary
+
+    # return hsv
 
 
     # Find contours in the mask and initialize the current
@@ -115,7 +137,7 @@ def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None, accur
     W, H = logprob.shape
     # Draw all contours on the original image for debugging.
     for cnt in contours:
-        epsilon = 0.01*cv2.arcLength(cnt,True)
+        epsilon = 0.04*cv2.arcLength(cnt,True)
         approx = cv2.approxPolyDP(cnt,epsilon,True)
         isPile = len(approx)!=4
         if M is not None:
@@ -159,9 +181,20 @@ def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None, accur
                     cv2.drawContours(drawframe, [approx], -1, (color, 0, 0), 2)
         else:
             if not isPile:
-                cv2.drawContours(drawframe, [approx], -1, blue, 2)
+                cv2.drawContours(drawframe, [approx], -1, black, 2)
             else:
-                cv2.drawContours(drawframe, [approx], -1, red, 2)
+                cv2.drawContours(drawframe, [approx], -1, black, 2)
+
+
+    # ignore the aruco
+    x_grid_edge = int((DX*100)//5)
+    y_grid_edge = int((-DY*100)//5)
+    logprob[0, 0] = 0.0
+    logprob[x_grid_edge, 0] = 0.0
+    logprob[0, y_grid_edge] = 0.0
+    logprob[x_grid_edge, y_grid_edge] = 0.0
+
+    return None
 
 
     

@@ -79,7 +79,7 @@ class DetectorNode(Node):
 
         M = util.perspective_transform(msg_data)
 
-        util.piledetect(frame, drawframe, M, self.get_logger().info, self.logprob, self.accurate_pos)
+        bina = util.piledetect(frame, drawframe, M, self.get_logger().info, self.logprob, self.accurate_pos)
         # # Convert to HSV
         # hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
 
@@ -152,7 +152,10 @@ class DetectorNode(Node):
         #     #     (radius, x, y))
 
         # Convert the frame back into a ROS image and republish.
-        self.pub.publish(self.bridge.cv2_to_imgmsg(drawframe, "rgb8"))
+        if bina is None or True:
+            self.pub.publish(self.bridge.cv2_to_imgmsg(drawframe, "rgb8"))
+        else:
+            self.pub.publish(self.bridge.cv2_to_imgmsg(bina, "rgb8"))
 
         # send pile position
         x_grid, y_grid = np.unravel_index(np.argmin(self.logprob, axis=None), self.logprob.shape)
@@ -160,7 +163,7 @@ class DetectorNode(Node):
         if self.logprob[x_grid, y_grid]<-0.5:
             # x, y = util.grid2map(x_grid, y_grid)
             # my_msg.data = [x/100, y/100]
-            self.get_logger().info(str( self.accurate_pos[x_grid, y_grid]))
+            # self.get_logger().info(str( self.accurate_pos[x_grid, y_grid]))
             my_msg.data = self.accurate_pos[x_grid, y_grid].tolist()
         else:
             my_msg.data = []
