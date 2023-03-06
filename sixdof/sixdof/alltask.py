@@ -148,7 +148,7 @@ class Trajectory():
         elif self.task==2:
             [_, _, cx, cy] = data
             self.node.get_logger().info(str([cx, cy]))
-            self.xtarget = np.array([cx, cy, 0.02]).reshape((-1,1))
+            self.xtarget = np.array([cx, cy, 0.025]).reshape((-1,1))
             theta = atan2(cy, cx)
             self.Rtarget = Rotz(theta) @ Rotx(np.pi)
 
@@ -393,26 +393,43 @@ class Trajectory():
             qdot = self.q_dot * 0
             t_inner = t-self.t0
 
-            if t_inner<1:
-                q = self.q
-                qdot = self.q_dot
-                gripper_theta = loose + (t_inner) * (tight-loose)
-
-            elif 1<=t_inner<3:
-                qdot[1, 0] = - 0.1 * np.sin((t_inner-1)/2 * np.pi)
-                qdot[3,0] = - 0.5 * np.sin((t_inner-1)/2 * np.pi)
-                q += qdot * dt
-                gripper_theta = tight
-
-            elif 3<=t_inner<4:
-                q = self.q
-                qdot = self.q_dot
-                gripper_theta = tight - (t_inner-3)*(tight-loose)
+            q = self.q
+            qdot = self.q_dot
+            factor = 1 if self.q_target[4, 0]>0 else -1
+            qdot[:, 0] = 0.0
+            qdot[4, 0] = - 1.5 * np.sin((t_inner)/6 * np.pi) * factor
             
-            else: #4~6
-                qdot[3,0] = + 0.5 * np.sin((t_inner-4)/2 * np.pi)
-                q += qdot * dt
-                gripper_theta = loose
+           
+
+            if t_inner<3:
+                gripper_theta = loose + (t_inner)/3 * (tight-loose)
+                qdot[3, 0] = 0.3 * np.sin((t_inner)/1.5 * np.pi)
+            else:
+                gripper_theta = tight - (t_inner-3)/3*(tight-loose)
+                qdot[3, 0] = -0.3 * np.sin((t_inner)/1.5 * np.pi)
+            
+            q += qdot * dt
+
+            # if t_inner<1:
+            #     q = self.q
+            #     qdot = self.q_dot
+            #     gripper_theta = loose + (t_inner) * (tight-loose)
+
+            # elif 1<=t_inner<3:
+            #     qdot[1, 0] = - 0.1 * np.sin((t_inner-1)/2 * np.pi)
+            #     qdot[3,0] = - 0.5 * np.sin((t_inner-1)/2 * np.pi)
+            #     q += qdot * dt
+            #     gripper_theta = tight
+
+            # elif 3<=t_inner<4:
+            #     q = self.q
+            #     qdot = self.q_dot
+            #     gripper_theta = tight - (t_inner-3)*(tight-loose)
+            
+            # else: #4~6
+            #     qdot[3,0] = + 0.5 * np.sin((t_inner-4)/2 * np.pi)
+            #     q += qdot * dt
+            #     gripper_theta = loose
 
             if t>self.t0+6:
                 self.phase = 3
@@ -429,7 +446,7 @@ class Trajectory():
         elif self.phase==4:
             q = self.q
             qdot = self.q_dot
-            if t>self.t0+5:
+            if t>self.t0+0:
                 self.t0 = t
                 self.phase = 0
                 mymsg = Int8()

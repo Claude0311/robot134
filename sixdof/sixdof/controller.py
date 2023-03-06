@@ -43,7 +43,10 @@ class CtrlNode(Node):
         self.timer = self.create_timer(0.01, self.process)
         self.t  = 0.0
         self.dt = self.timer.timer_period_ns * 1e-9
-        self.waiting = False
+        # -1: not looking
+        #  0: looking for letter
+        #  1: looking for tile
+        self.waiting = -1
 
         # create_publisher
         
@@ -92,39 +95,41 @@ class CtrlNode(Node):
         # next phase
         if phase == 0:
             self.t = 0 # start waiting
-            self.waiting = True
+            self.waiting = 0
             
             letters = 'abcdefghijklmnopqrstuvwxyz'
             output = Int8()
+            self.get_logger().info(str((letters.find(self.word[self.index]), self.word[self.index], self.index, self.word)))
             output.data = letters.find(self.word[self.index])
             self.pub2.publish(output)
             
     def handle_letter(self, msg):
         data = msg.data
-        self.waiting = False
         [cx, cy, tx, ty, target] = data
         target = int(target)
-        self.get_logger().info(str(target))
+        self.get_logger().info(str((target, self.waiting)))
         letters = 'abcdefghijklmnopqrstuvwxyz'
         mymsg = Float32MultiArray()
-        if 0<=target<26 and letters[target]==self.word[self.index]:
-            mymsg.data = [0.0, float(self.index), cx, cy, tx, ty]
-        elif target == 26:
-            mymsg.data = [1.0, -1.0, cx, cy, tx, ty]
-        elif target == -1:
-            # pile
-            mymsg.data = [2.0, -1.0, cx, cy]
-        self.pub.publish(mymsg)
+        if self.waiting != -1:
+            if 0<=target<26 and letters[target]==self.word[self.index] and self.waiting==0:
+                mymsg.data = [0.0, float(self.index), cx, cy, tx, ty]
+                self.waiting = -1
+            elif target == 26:
+                mymsg.data = [1.0, -1.0, cx, cy, tx, ty]
+            elif target == -1 and self.waiting==2: # pile
+                self.waiting = -1
+                mymsg.data = [2.0, -1.0, cx, cy]
+            self.pub.publish(mymsg)
 
         
 
 
     # Process
     def process(self):
-        if self.waiting:
+        if self.waiting==0:
             self.t += self.dt
             if self.t>5:
-                self.waiting = False
+                self.waiting = 2
                 self.t = 0
                 self.get_logger().info('try hit pile')
                 output = Int8()

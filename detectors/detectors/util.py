@@ -153,6 +153,8 @@ def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None, accur
             center = np.average(approx[:, 0, :], axis=0).astype(int)
             center_perp = cv2.perspectiveTransform(np.array([[center]], dtype='float32'), M)
             x_grid, y_grid = map2grid(center_perp[0,0,0]*100, center_perp[0,0,1]*100)
+            # myprint(str((x_grid, y_grid)))
+            
             
             if 0<=x_grid<W and 0<=y_grid<H:
                 accurate_pos[x_grid, y_grid] = [x/1000, y/1000]
@@ -189,10 +191,11 @@ def piledetect(frame, drawframe=None, M=None, myprint=print, logprob=None, accur
     # ignore the aruco
     x_grid_edge = int((DX*100)//5)
     y_grid_edge = int((-DY*100)//5)
+    # myprint(str((x_grid_edge,y_grid_edge)))
     logprob[0, 0] = 0.0
-    logprob[x_grid_edge, 0] = 0.0
-    logprob[0, y_grid_edge] = 0.0
-    logprob[x_grid_edge, y_grid_edge] = 0.0
+    logprob[x_grid_edge:, :] = 0.0
+    logprob[:, y_grid_edge:] = 0.0
+    logprob[x_grid_edge:, y_grid_edge:] = 0.0
 
     return None
 
