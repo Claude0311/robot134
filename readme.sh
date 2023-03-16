@@ -38,4 +38,4 @@ ros2 launch sixdof runexample.alltask.launch.py
 
 # ros2 topic pub -1 /brain/settarget /std_msgs/string '{"data":"0"}'
 ros2 topic pub -1 /cur_phase std_msgs/Int8 '{"data":"0"}'
-ros2 topic pub -1 /set_letter std_msgs/String '{"data":"boot"}'
+ros2 topic pub -1 /set_letter std_msgs/String '{"data":"robot"}'

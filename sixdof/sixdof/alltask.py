@@ -11,6 +11,7 @@ from threeDOF.TransformHelpers  import *
 from math import atan2
 
 from std_msgs.msg import Float32MultiArray, Int8
+import random
 
 #
 #   Spline Helper
@@ -148,7 +149,9 @@ class Trajectory():
         elif self.task==2:
             [_, _, cx, cy] = data
             self.node.get_logger().info(str([cx, cy]))
-            self.xtarget = np.array([cx, cy, 0.025]).reshape((-1,1))
+            height = 0.025 # random.uniform(0.02, 0.03)
+            # self.node.get_logger().info('random height %f cm'%(height*100))
+            self.xtarget = np.array([cx, cy, height]).reshape((-1,1))
             theta = atan2(cy, cx)
             self.Rtarget = Rotz(theta) @ Rotx(np.pi)
 
@@ -292,6 +295,7 @@ class Trajectory():
             if t>self.t0+5:
                 self.phase = 3
                 self.t0 = t
+                self.notgrap = False
 
         elif self.phase==3:
             (q,qdot) = self.movement_picktile(t, dt,  T)
@@ -299,6 +303,16 @@ class Trajectory():
 
             if t>self.t0+T:
                 self.phase = 4 
+                self.t0 = t
+                self.xtarget.pop(0)
+                self.Rtarget.pop(0)
+                self.eh.pop(0)
+                self.alpha.pop(0)
+                self.q_target = self.q
+                self.Rd = None
+                self.x_desire = None
+            elif self.notgrap:
+                self.phase = 5
                 self.t0 = t
                 self.xtarget.pop(0)
                 self.Rtarget.pop(0)
@@ -323,7 +337,7 @@ class Trajectory():
                 self.t0 = t
                 self.phase = 0
                 mymsg = Int8()
-                mymsg.data = 0
+                mymsg.data = 0 if not self.notgrap else 1
                 self.pub.publish(mymsg)
 
         return (q, qdot, gripper_theta)

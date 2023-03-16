@@ -40,6 +40,7 @@ class DetectorNode(Node):
         # Create a publisher for the processed (debugging) image.
         # Store up to three images, just in case.
         self.pub = self.create_publisher(Image, name+'/image_raw', 3)
+        # Sends list of target, flipped tiles, and piles
         self.pub2 = self.create_publisher(Float32MultiArray, name+'/lettertarget', 3)
 
         # Set up the OpenCV bridge.
@@ -92,49 +93,45 @@ class DetectorNode(Node):
         M = util.perspective_transform(msg_data, ref=[46,47,48,49])
 
         # Convert the frame back into a ROS image and republish.
-        
-
-        if M is None or (self.target not in msg_data[:,0].tolist() and self.target!=-1): 
+        # if M is None or (self.target not in msg_data[:,0].tolist() and self.target!=-1): 
+        if M is None: 
             self.pub.publish(self.bridge.cv2_to_imgmsg(drawframe, "rgb8"))
             return
         
-        if self.target >= 0:
-            self.pub.publish(self.bridge.cv2_to_imgmsg(drawframe, "rgb8"))
-            # send target position
-            target_ind = np.argwhere( msg_data[:,0]==self.target )[0,0]
-            target = msg_data[target_ind]
-            
-            output = []
-            # center position
-            center_pos = util.warp_point(M, target[1], target[2])
-            output.extend(center_pos.tolist())
-            top_left_pos = util.warp_point(M, target[3], target[4])
-            top_right_pos = util.warp_point(M, target[5], target[6])
-            output.extend( ((top_left_pos+top_right_pos)/2).tolist() )
-            output.append(float(self.target))
+        # list of all tiles/pile position
+        total_msg = []
 
-            my_msg = Float32MultiArray()
-            my_msg.data = output
-            self.pub2.publish(my_msg)
-        else:
-            
-            util.piledetect(frame, drawframe, M, self.get_logger().info, self.logprob, self.accurate_pos)
-            self.pub.publish(self.bridge.cv2_to_imgmsg(drawframe, "rgb8"))
+        # pile detection
+        util.piledetect(frame, drawframe, M, self.get_logger().info, self.logprob, self.accurate_pos)
+        self.pub.publish(self.bridge.cv2_to_imgmsg(drawframe, "rgb8"))
+        # add target and flipped position
+        for tile in msg_data:
+            if tile[0] == self.target or tile[0] == 26:
+                output = []
+                # center position
+                output.append(float(tile[0]))
+                center_pos = util.warp_point(M, tile[1], tile[2])
+                output.extend(center_pos.tolist())
+                top_left_pos = util.warp_point(M, tile[3], tile[4])
+                top_right_pos = util.warp_point(M, tile[5], tile[6])
+                output.extend( ((top_left_pos+top_right_pos)/2).tolist() )
+                total_msg += output
+        # add pile position
+        x_grid, y_grid = np.unravel_index(np.argmin(self.logprob, axis=None), self.logprob.shape)
+        output = []
+        if self.logprob[x_grid, y_grid]<-0.5:
+            output.append(-1.0)
+            output.extend(self.accurate_pos[x_grid, y_grid].tolist())
+            output.extend([-1.0, -1.0])
+            total_msg += output
 
-            # send pile position
-            x_grid, y_grid = np.unravel_index(np.argmin(self.logprob, axis=None), self.logprob.shape)
-            my_msg = Float32MultiArray()
-            if self.logprob[x_grid, y_grid]<-0.5:
-                # x, y = util.grid2map(x_grid, y_grid)
-                # my_msg.data = [x/100, y/100]
-                # self.get_logger().info(str( self.accurate_pos[x_grid, y_grid]))
-                my_msg.data = self.accurate_pos[x_grid, y_grid].tolist()
-                my_msg.data.extend([-1.0, -1.0, -1.0])
-            else:
-                return
-            
-            self.pub2.publish(my_msg)
+        if total_msg is None:
+            return 
 
+        # send message
+        my_msg = Float32MultiArray()
+        my_msg.data = total_msg 
+        self.pub2.publish(my_msg)
 
 #
 #   Main Code

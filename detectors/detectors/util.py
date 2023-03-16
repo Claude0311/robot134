@@ -12,9 +12,9 @@ yellow = (255, 255,   0)
 white  = (255, 255, 255)
 black  = (  0,   0,   0)
 
-X0 = -0.80
+X0 = -0.825
 Y0 = 0.00
-DX = 0.52
+DX = 0.545
 DY = -0.52
 
 def aruco(frame, drawframe=None):

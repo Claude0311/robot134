@@ -95,6 +95,8 @@ class DemoNode(Node):
         self.actpos = msg.position
         self.actvel = msg.velocity
         self.acteff = msg.effort
+        if self.actpos[2]<-1.36:
+            self.trajectory.notgrap = True
 
     def check_colli(self, q, qd, qdd):
         q_threshold = 0.03
@@ -115,7 +117,7 @@ class DemoNode(Node):
         t2 = -t2
         tau3 = 0.5 * cos(t1+t2+t3)  + 0.01 * sin(t1+t2+t3)
         tau2 = -tau3 - 5.0 * cos(t1+t2)
-        tau1 = tau2 - 5.0 * cos(t1) * scale
+        tau1 = tau2 - 5.3 * cos(t1) * scale
         return (0.0, tau1, 0.0, tau2, tau3, 0.0)
 
 

@@ -85,9 +85,8 @@ def generate_launch_description():
         executable = 'rqt_plot',
         output     = 'screen',
         arguments =[
-            '/joint_states/effort[1]',
-            '/joint_states/position[1]',
-            '/joint_states/effort[3]'
+            '/joint_states/effort[2]',
+            '/joint_states/position[2]'
         ],
                     # '/joint_states/position[2]',
                     # '/joint_states/effort[4]',
