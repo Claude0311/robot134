@@ -9,7 +9,6 @@
 #   Publishers:     /letter_detector/image_raw     Debug image
 #                   /letter_detector/letter_pos [ center_x, center_y, top_x, top_y, letter(0~49) ]
 #
-import cv2
 import numpy as np
 
 # ROS Imports
@@ -17,8 +16,6 @@ import rclpy
 import cv_bridge
 
 from rclpy.node         import Node
-from sensor_msgs.msg    import Image
-import detectors.util as util
 from std_msgs.msg import Float32MultiArray, Int8, String
 
 #
@@ -53,6 +50,8 @@ class CtrlNode(Node):
         self.pile = None
         self.flip = None
 
+
+
         # create_publisher
         
         # To robot:  decide action: flip/pile/pickup
@@ -76,7 +75,7 @@ class CtrlNode(Node):
         )
         # Gets all the tiles and piles from camera
         self.sub3 = self.create_subscription(
-            Float32MultiArray, '/letter/lettertarget', self.select_phase, 10
+            Float32MultiArray, '/lettertarget', self.select_phase, 10
         )
 
         # Report.
@@ -187,13 +186,23 @@ class CtrlNode(Node):
             elif -1 in tokens:
                 idx = tokens.index(-1)
                 [letter, cx, cy, tx, ty] = data[idx] 
+                targ_msg = [2.0, -1.0, \
+                            float(cx), float(cy)]
+                self.waiting = 0
+                # mymsg.data = targ_msg
+                # self.action_pub.publish(mymsg)
+                # self.waiting = -1 
+                self.pile = targ_msg
+            elif 26 in tokens:
+                idx = tokens.index(26)
+                [letter, cx, cy, tx, ty] = data[idx] 
                 targ_msg = [1.0, -1.0, \
                             float(cx), float(cy), float(tx), float(ty)]
                 self.waiting = 0
                 # mymsg.data = targ_msg
                 # self.action_pub.publish(mymsg)
                 # self.waiting = -1 
-                self.pile = targ_msg
+                self.flip = targ_msg
             # if pile is in data, but target tile is not found
             # self.get_logger().info("tokens: " + str(tokens))
             # elif -1 in tokens:
@@ -209,10 +218,10 @@ class CtrlNode(Node):
     
     # Process
     def process(self):
-        self.get_logger().info("self.waiting: " + str(self.waiting))
         # we have camera data
         if self.waiting == 0:
             self.t += self.dt
+            if self.t%2<0.011: self.get_logger().info("self.waiting: " + str(self.waiting))
             # we have not found a tile
             if self.t>5:
                 if self.pile is not None:
@@ -222,6 +231,17 @@ class CtrlNode(Node):
                     self.action_pub.publish(mymsg)
                     self.t = 0
                     self.waiting = -1
+                    self.pile = None
+                    self.flip = None
+                elif self.flip is not None:
+                    self.get_logger().info("trying to flip a tile")
+                    mymsg = Float32MultiArray()
+                    mymsg.data = self.flip
+                    self.action_pub.publish(mymsg)
+                    self.t = 0
+                    self.waiting = -1
+                    self.pile = None
+                    self.flip = None
             #     # self.get_logger().info("WE CHANGED SELF.WAITING TO 2")
             #     self.waiting = -1
             #     self.t = 0

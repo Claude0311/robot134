@@ -39,3 +39,6 @@ ros2 launch sixdof runexample.alltask.launch.py
 # ros2 topic pub -1 /brain/settarget /std_msgs/string '{"data":"0"}'
 ros2 topic pub -1 /cur_phase std_msgs/Int8 '{"data":"0"}'
 ros2 topic pub -1 /set_letter std_msgs/String '{"data":"robot"}'
+#fake topic
+ros2 topic pub -1 letter/lettertarget std_msgs/msg/Float32MultiArray '{"data":[2.0, -0.5, -0.5, -0.4, -0.5, 26.0, -0.5, -0.0, -0.5, -0.1, -1.0, -0.0, -0.5, -1.0, -1.0]}'
+ros2 topic pub -1 letter/lettertarget std_msgs/msg/Float32MultiArray '{"data":[26.0, -0.5, -0.0, -0.5, -0.1, -1.0, -0.0, -0.5, -1.0, -1.0]}'

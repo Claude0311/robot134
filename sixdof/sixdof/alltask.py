@@ -98,7 +98,7 @@ class Trajectory():
             self.node.get_logger().info(str(arg))
 
     def settarget(self, msg=None):
-        if self.phase != 0: return
+        if self.phase != 0 and not (self.phase==7 and self.task==1): return
         if msg is None:
             self.node.get_logger().info('msg type wrong')
             self.node.get_logger().info(str(msg.data))
@@ -145,6 +145,11 @@ class Trajectory():
             self.Rtarget = Rtarget
 
             self.phase = 1
+
+        elif self.task == 1:
+            self.node.get_logger().info('task: flip a tile')
+            [_, _, cx, cy, tx, ty] = data
+            a
 
         elif self.task==2:
             [_, _, cx, cy] = data
