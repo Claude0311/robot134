@@ -37,7 +37,7 @@ class CtrlNode(Node):
         # Initialize the node, naming it as specified
         super().__init__(name)
 
-        self.word = 'cider'
+        self.word = 'robotics'
         self.index = -1
 
         self.timer = self.create_timer(0.01, self.process)
