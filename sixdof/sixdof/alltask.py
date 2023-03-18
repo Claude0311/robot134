@@ -149,7 +149,42 @@ class Trajectory():
         elif self.task == 1:
             self.node.get_logger().info('task: flip a tile')
             [_, _, cx, cy, tx, ty] = data
-            a
+
+            xtarget = [self.xsafe]
+            Rtarget = [self.Rsafe]
+
+            theta = atan2(ty-cy, tx-cx)
+            theta2 = atan2(cy, cx) + np.pi/2
+
+            xtarget.append( np.array([cx, cy, 0.02]).reshape((-1,1)) )
+            Rtarget.append( Rotz(theta) @ Rotx(np.pi) )
+
+            xtarget.append( np.array([cx, cy, 0.02]).reshape((-1,1)) )
+            Rtarget.append( Rotz(theta2) @ Rotx(5/8 * np.pi) )
+
+            self.eh = []
+            self.alpha = []
+
+            for ph in [1, 2]:
+                #### calculate the eigenvector ####
+                R0f = (Rtarget[ph]).T @ Rtarget[ph-1]
+                w,v = np.linalg.eig( R0f )
+                index = np.argmin(np.abs(w-1.))
+                u = v[:,index].reshape((3,1))
+                u = np.real(u)
+                alpha = np.arccos((np.trace(R0f)-1)/2)
+                if not np.allclose(Rote(u,-alpha),R0f):
+                    alpha = -alpha
+                ###################################
+
+                self.eh.append( u )
+                self.alpha.append( alpha )
+
+            self.xtarget = xtarget
+            self.Rtarget = Rtarget
+
+            self.phase = 1
+            
 
         elif self.task==2:
             [_, _, cx, cy] = data
@@ -212,6 +247,234 @@ class Trajectory():
     def toSafe(self, t, dt, T):
         (q,qdot) = spline(t,  T, self.q0, self.qsafe)
         return (q,qdot)
+
+    def movement_fliptile(self, t_total, dt, T):
+        t = t_total-self.t0
+        if self.phase in [1, 8]:
+            if self.phase == 1:
+                xtarget_higher = self.xtarget[1]*1
+                xtarget_higher[2] = 0.13
+                if t<2/3*T:
+                    (x_desire, xddot) = spline(t, 2/3*T, self.xtarget[0], xtarget_higher)
+                    (theta_desire, wd) = spline(t, 2/3*T, 0, self.alpha[0])
+                else:
+                    (x_desire, xddot) = spline(t-2/3*T, 1/3*T, xtarget_higher, self.xtarget[1])
+                    (theta_desire, wd) = spline(t-2/3*T, 1/3*T, self.alpha[0], self.alpha[0])
+            else:
+                (x_desire, xddot) = spline(t, T, self.xtarget[0], self.xtarget[1])
+                (theta_desire, wd) = spline(t, T, 0, self.alpha[0])
+
+            Jv = self.chain.Jv()
+            Jw = self.chain.Jw()
+            Jv_inv = np.linalg.pinv(Jv, 0.1)
+            Jw_inv = np.linalg.pinv(Jw, 0.1)
+
+            xq = self.chain.ptip()
+
+            R0 = self.Rtarget[0]
+            wd = R0 @ self.eh[0] * wd
+            
+
+            self.Rd = R0 @ Rote(self.eh[0], theta_desire)
+            self.x_desire = x_desire
+
+            self.xdot = xddot
+
+            if self.Rerr is not None:
+                xddot +=  self.lam * self.Rerr[:3]
+                wd += self.lam * self.Rerr[3:]
+            pd = np.vstack((xddot,wd))
+
+            qdot = Jv_inv @ xddot + nullspace(Jv, Jv_inv) @ Jw_inv @ wd 
+            q = self.q + qdot * dt
+            return (q,qdot)
+        else:
+            tmp_qtarget = self.q_target * 1
+            tmp_qtarget[1] = 0.9*self.q_target[1] + 0.1*self.qsafe[1]
+
+            if t < 1/4*T:
+                (q, qdot) = spline(t, 1/4*T, self.q_target, tmp_qtarget)
+            else:
+                (q, qdot) = spline(t-1/4*T, 3/4*T, tmp_qtarget, self.qsafe)
+            return (q,qdot)
+
+    def fliptile_evaluate(self, t, dt):
+        T = 5
+        loose = -0.8
+        tight = -1.4
+        gripper_theta = loose
+
+        if self.phase==1:
+            (q,qdot) = self.movement_fliptile(t, dt,  T)
+
+            if t>self.t0+T:
+                self.phase = 2
+                self.t0 = t
+                
+                self.og_theta4 = q[4]*1
+                self.xtarget.pop(0)
+                self.Rtarget.pop(0)
+                self.eh.pop(0)
+                self.alpha.pop(0)
+
+                self.q_target = self.q
+                self.Rd = None
+                self.x_desire = None
+
+        # rotate tile to be parallel
+        elif self.phase==2:
+            T = 3
+            # tighten gripper
+            gripper_theta = loose + (t - self.t0)/T * (tight - loose)
+
+            q = self.q
+            qdot = self.q_dot
+            print("grab tile")
+            if t>self.t0+T:
+                self.phase = 3
+                self.t0 = t
+        elif self.phase==3:
+            T = 3
+            q = self.q
+            qdot = self.q_dot
+            gripper_theta = tight
+            # lift straight up
+            print("lifting tile straight up")
+            print("dt: ", dt)
+            q[1] -= dt * (1.5 / 180) * np.pi 
+
+            if t>self.t0+T:
+                self.phase = 4
+                self.t0 = t
+                self.og_theta4 = q[4] * 1
+                self.q_target = self.q
+        elif self.phase==4:
+            T = 3
+            q = self.q
+            qdot = self.q_dot
+            gripper_theta = tight 
+            # aligning
+            distance = \
+              (self.og_theta4 - (-45/180) * np.pi) #% np.pi  
+            distance = -distance
+            q[4] = (t - self.t0)/T * distance + self.og_theta4  
+            
+            if t>self.t0+T:
+                self.phase = 5
+                self.t0 = t
+                self.og_theta4 = q[4]*1
+                self.q_target = self.q
+        elif self.phase==5:
+            T = 1
+            q = self.q
+            qdot = self.q_dot
+            gripper_theta = loose
+            
+            # drop it
+            print("dropping tile")
+            if t>self.t0+T:
+                self.phase = 8
+                self.t0 = t
+
+                self.xtarget[0] = self.chain.ptip()
+                self.Rtarget[0] = self.chain.Rtip()
+
+                #### calculate the eigenvector ####
+                R0f = (self.Rtarget[1]).T @ self.Rtarget[0]
+                w,v = np.linalg.eig( R0f )
+                index = np.argmin(np.abs(w-1.))
+                u = v[:,index].reshape((3,1))
+                u = np.real(u)
+                alpha = np.arccos((np.trace(R0f)-1)/2)
+                if not np.allclose(Rote(u,-alpha),R0f):
+                    alpha = -alpha
+                ###################################
+
+                self.eh[0] = u
+                self.alpha[0] = alpha
+
+        elif self.phase==8:
+            # go back to tile at an angle
+            T = 5
+            (q,qdot) = self.movement_fliptile(t, dt,  T)
+
+            if t>self.t0+T:
+                self.phase = 9
+                self.t0 = t
+                self.q_target = self.q
+                self.Rd = None
+                self.x_desire = None 
+                self.og_theta4 = q[4]*1
+
+                self.xtarget.pop(0)
+                self.Rtarget.pop(0)
+                self.eh.pop(0)
+                self.alpha.pop(0)
+
+        elif self.phase==9:
+            T = 3
+            q = self.q
+            qdot = self.q_dot
+            # tighten gripper
+            print("gripping tile")
+            gripper_theta = loose + (t - self.t0)/T * (tight - loose)
+            
+            if t>self.t0+T:
+                self.phase = 10
+                self.t0 = t
+        elif self.phase==10:
+            T = 3
+            q = self.q
+            qdot = self.q_dot
+            gripper_theta = tight 
+            # lift it 
+            print("lifting arm angle")
+            q[1] -= dt * (2 / 180) * np.pi 
+            q[3] += dt * (5 / 180) * np.pi * np.sign(q[3]) 
+            if t>self.t0+T:
+                self.phase = 11
+                self.t0 = t
+                self.q_target = self.q
+        # flip it    
+        elif self.phase==11:
+            T = 3
+            q = self.q
+            qdot = self.q_dot
+            gripper_theta = tight  
+            print("flipping")
+            q[4] = (t - self.t0)/T * np.pi + self.og_theta4 
+            if t>self.t0+T:
+                self.phase = 12 
+                self.t0 = t
+                # arm has been rotated, so q_target has been changed
+                self.q_target = self.q
+        # drop it
+        elif self.phase==12:
+            T = 1 
+            q = self.q
+            qdot = self.q_dot
+            # tighten gripper
+            gripper_theta = loose 
+            print("dropping")
+            if t>self.t0+T:
+                self.phase = 13
+                self.t0 = t
+                self.q_target = self.q
+
+        # back to safe
+        elif self.phase==13:
+            T = 5
+            (q, qdot) = self.movement_fliptile(t, dt, T)
+            gripper_theta = loose
+
+            if t>self.t0+T:
+                self.t0 = t
+                self.phase = 0
+                mymsg = Int8()
+                mymsg.data = 0
+                self.pub.publish(mymsg)
+        
+        return (q, qdot, gripper_theta)
 
     def movement_picktile(self, t_total, dt, T):
         t = t_total-self.t0
@@ -421,10 +684,10 @@ class Trajectory():
            
 
             if t_inner<3:
-                gripper_theta = loose + (t_inner)/3 * (tight-loose)
+                # gripper_theta = loose + (t_inner)/3 * (tight-loose)
                 qdot[3, 0] = 0.3 * np.sin((t_inner)/1.5 * np.pi)
             else:
-                gripper_theta = tight - (t_inner-3)/3*(tight-loose)
+                # gripper_theta = tight - (t_inner-3)/3*(tight-loose)
                 qdot[3, 0] = -0.3 * np.sin((t_inner)/1.5 * np.pi)
             
             q += qdot * dt
@@ -500,6 +763,9 @@ class Trajectory():
 
         elif self.task==0:
             (q, qdot, gripper_theta) = self.picktile_evaluate(t, dt)
+
+        elif self.task==1:
+            (q, qdot, gripper_theta) = self.fliptile_evaluate(t, dt)
 
         elif self.task==2:
             (q, qdot, gripper_theta) = self.hitpile_evaluate(t, dt)

@@ -95,7 +95,7 @@ class DemoNode(Node):
         self.actpos = msg.position
         self.actvel = msg.velocity
         self.acteff = msg.effort
-        if self.actpos[2]<-1.36:
+        if self.actpos[2]<-1.34:
             self.trajectory.notgrap = True
 
     def check_colli(self, q, qd, qdd):

@@ -34,7 +34,7 @@ class CtrlNode(Node):
         # Initialize the node, naming it as specified
         super().__init__(name)
 
-        self.word = 'cider'
+        self.word = 'robot'
         self.index = -1
 
         self.timer = self.create_timer(0.01, self.process)
@@ -93,24 +93,13 @@ class CtrlNode(Node):
    
     # listens to robot - if msg=1, then it failed to pick up tile
     def handle_phase(self, msg=None):
-        self.get_logger().info('phase 0 get')
         phase = msg.data if msg is not None else 0
+        self.get_logger().info('phase' + str(phase) + 'get')
         if phase == 0: 
             self.failure_count = 0
             self.index += 1
         else:
             self.failure_count += 1
-            # fail three times in a row
-            if self.failure_count >=2:
-                # look for pile
-                # self.waiting = 2
-                self.t = 0
-                self.get_logger().info('try hit pile')
-                output = Int8()
-                output.data = -1
-                self.camera_pub.publish(output)
-                self.index -= 1
-                return
 
 
         # word done
@@ -159,7 +148,7 @@ class CtrlNode(Node):
     # flip:   [1,    -1, pos_x, pos_y, pos_top_x, pos_top_y]
     # pile:   [2,    -1, pos_x, pos_y]
     def select_phase(self, msg):
-        self.get_logger().info("in select phase")
+        # self.get_logger().info("in select phase")
         # self.get_logger().info("waiting: " +  str(self.waiting))
         data = msg.data
         data = np.array(data).reshape(-1, 5)
@@ -168,11 +157,11 @@ class CtrlNode(Node):
         mymsg = Float32MultiArray()
         # if target is in data
         target = ord(self.word[self.index].lower()) - 97
-        self.get_logger().info("target: " + str(target))
-        self.get_logger().info("tokens: " + str(tokens))
-        self.get_logger().info("-1?: " + str(-1 in tokens))
+        # self.get_logger().info("target: " + str(target))
+        # self.get_logger().info("tokens: " + str(tokens))
+        # self.get_logger().info("-1?: " + str(-1 in tokens))
         if self.waiting == 0:
-            if target in tokens:
+            if target in tokens and self.failure_count<2:
                 # look for letter
                 self.get_logger().info("letter is found!")
                 idx = tokens.index(target)
@@ -223,23 +212,25 @@ class CtrlNode(Node):
             self.t += self.dt
             if self.t%2<0.011: self.get_logger().info("self.waiting: " + str(self.waiting))
             # we have not found a tile
-            if self.t>5:
-                if self.pile is not None:
-                    self.get_logger().info("trying to hit a pile")
-                    mymsg = Float32MultiArray()
-                    mymsg.data = self.pile
-                    self.action_pub.publish(mymsg)
-                    self.t = 0
-                    self.waiting = -1
-                    self.pile = None
-                    self.flip = None
-                elif self.flip is not None:
+            if self.t>5 or self.failure_count>=2:
+                if self.flip is not None:
                     self.get_logger().info("trying to flip a tile")
                     mymsg = Float32MultiArray()
                     mymsg.data = self.flip
                     self.action_pub.publish(mymsg)
                     self.t = 0
                     self.waiting = -1
+                    self.index -= 1
+                    self.pile = None
+                    self.flip = None
+                elif self.pile is not None:
+                    self.get_logger().info("trying to hit a pile")
+                    mymsg = Float32MultiArray()
+                    mymsg.data = self.pile
+                    self.action_pub.publish(mymsg)
+                    self.t = 0
+                    self.waiting = -1
+                    self.index -= 1
                     self.pile = None
                     self.flip = None
             #     # self.get_logger().info("WE CHANGED SELF.WAITING TO 2")
